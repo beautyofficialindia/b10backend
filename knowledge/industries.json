@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Healthcare",
+    "description": "Building HIPAA-compliant systems, patient management portals, and telemedicine solutions."
+  },
+  {
+    "name": "E-commerce",
+    "description": "Developing scalable online storefronts, inventory management systems, and custom payment integrations."
+  },
+  {
+    "name": "Finance",
+    "description": "Secure financial dashboards, trading platforms, and automated reporting tools."
+  }
+]

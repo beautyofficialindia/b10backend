@@ -1,0 +1,20 @@
+[
+  {
+    "id": "web-dev",
+    "name": "Web Development",
+    "description": "Custom web application development using modern frameworks like React, Next.js, and Django.",
+    "technologies": ["React", "Django", "Node.js", "Next.js"]
+  },
+  {
+    "id": "ai-dev",
+    "name": "AI & Chatbot Solutions",
+    "description": "Integration of AI models, intelligent chatbots, and machine learning pipelines into business workflows to automate tasks and improve customer experience.",
+    "technologies": ["OpenAI", "Python", "LLMs", "NLP"]
+  },
+  {
+    "id": "mobile-dev",
+    "name": "Mobile Development",
+    "description": "Native and cross-platform mobile application development for iOS and Android.",
+    "technologies": ["Flutter", "React Native", "Swift", "Kotlin"]
+  }
+]
