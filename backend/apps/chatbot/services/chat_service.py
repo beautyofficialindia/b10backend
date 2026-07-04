@@ -3,6 +3,7 @@ from .openrouter_client import OpenRouterClient
 from ..models import ConversationSession, Message
 from apps.leads.services.lead_service import LeadService
 from apps.leads.services.qualification_service import QualificationService
+from apps.leads.services.notification_service import NotificationService
 from django.utils import timezone
 import uuid
 
@@ -12,6 +13,7 @@ class ChatService:
         self.client = OpenRouterClient()
         self.lead_service = LeadService()
         self.qualification_service = QualificationService()
+        self.notification_service = NotificationService()
 
     def process_message(self, session_id, user_message):
         # 1. Get or create session
@@ -38,6 +40,12 @@ class ChatService:
         lead_summary = None
         if lead and lead_status == 'qualified':
             lead_summary = f"Email: {lead.email}, Industry: {lead.industry}, Type: {lead.project_type}"
+            
+            # Send Notification if newly qualified
+            if not lead.notification_sent:
+                self.notification_service.send_lead_notification(lead)
+                lead.notification_sent = True
+                lead.save(update_fields=['notification_sent'])
 
         # 3. Get history (last 10 messages for context)
         history = list(session.messages.order_by('created_at')[:10])

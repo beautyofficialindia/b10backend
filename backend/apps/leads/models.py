@@ -24,6 +24,7 @@ class Lead(models.Model):
         ('lost', 'Lost'),
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='gathering')
+    notification_sent = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -139,3 +139,7 @@ REST_FRAMEWORK = {
         'user': '100/min'
     }
 }
+
+# Email Backend (Phase 3: Console for development)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@b10itsolution.com'
