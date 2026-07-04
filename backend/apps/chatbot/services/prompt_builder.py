@@ -4,7 +4,7 @@ class PromptBuilder:
     def __init__(self):
         self.knowledge_loader = KnowledgeLoader()
 
-    def build_system_prompt(self, user_message):
+    def build_system_prompt(self, user_message, lead_status=None, missing_fields=None, lead_summary=None):
         # Keyword-based intent classification
         user_message_lower = user_message.lower()
         
@@ -79,11 +79,18 @@ Never claim services that are not present in the Knowledge Base.
 If information is unavailable, admit that you do not know and offer a consultation or contact option.
 Keep responses concise, professional, and helpful.
 """
+        if lead_status == 'gathering' and missing_fields:
+            fields_str = ", ".join(missing_fields)
+            system_prompt += f"\n\nLEAD GATHERING MODE:\nThe user is interested in a project, but we are missing the following required information: {fields_str}.\nPlease naturally and politely ask the user for this missing information in your response. Do not be overly robotic."
+        
+        elif lead_status == 'qualified':
+            system_prompt += f"\n\nLEAD QUALIFIED MODE:\nThe user has provided all required information and is now qualified.\nLead Summary: {lead_summary}\nPlease present a brief summary of their project and explicitly ask them if they would like to confirm this information and book a consultation."
+
         return system_prompt
 
-    def build_messages(self, history, user_message):
+    def build_messages(self, history, user_message, lead_status=None, missing_fields=None, lead_summary=None):
         messages = [
-            {"role": "system", "content": self.build_system_prompt(user_message)}
+            {"role": "system", "content": self.build_system_prompt(user_message, lead_status, missing_fields, lead_summary)}
         ]
         
         for msg in history:
