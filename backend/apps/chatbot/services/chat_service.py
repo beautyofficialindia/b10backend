@@ -4,6 +4,7 @@ from ..models import ConversationSession, Message
 from apps.leads.services.lead_service import LeadService
 from apps.leads.services.qualification_service import QualificationService
 from apps.leads.services.notification_service import NotificationService
+from apps.analytics.services.analytics_service import AnalyticsService
 from django.utils import timezone
 import uuid
 
@@ -18,6 +19,7 @@ class ChatService:
     def process_message(self, session_id, user_message):
         # 1. Get or create session
         session = None
+        session_created = False
         if session_id:
             try:
                 session = ConversationSession.objects.get(session_id=session_id)
@@ -28,21 +30,31 @@ class ChatService:
 
         if not session:
             session = ConversationSession.objects.create()
+            session_created = True
+
+        if session_created:
+            AnalyticsService.track_chat_started(session)
 
         # Update last_message_at
         session.last_message_at = timezone.now()
         session.save(update_fields=['last_message_at'])
 
+        AnalyticsService.track_message_sent(session, "user")
+
         # 2. Upsert Lead and Recalculate Qualification
-        lead = self.lead_service.process_message_for_lead(session, user_message)
+        lead, lead_created = self.lead_service.process_message_for_lead(session, user_message)
+        if lead_created:
+            AnalyticsService.track_lead_created(lead)
+
         lead_status, missing_fields = self.qualification_service.calculate_status(lead)
         
         lead_summary = None
         if lead and lead_status == 'qualified':
             lead_summary = f"Email: {lead.email}, Industry: {lead.industry}, Type: {lead.project_type}"
             
-            # Send Notification if newly qualified
+            # If it just became qualified
             if not lead.notification_sent:
+                AnalyticsService.track_lead_qualified(lead)
                 self.notification_service.send_lead_notification(lead)
                 lead.notification_sent = True
                 lead.save(update_fields=['notification_sent'])
@@ -71,6 +83,7 @@ class ChatService:
 
         # 7. Save bot message to DB
         Message.objects.create(session=session, role='assistant', content=bot_response)
+        AnalyticsService.track_message_sent(session, "assistant")
 
         return {
             "session_id": str(session.session_id),

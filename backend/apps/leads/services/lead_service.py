@@ -9,7 +9,7 @@ class LeadService:
         extracted_data = self.extractor.extract(message_text)
         
         if not extracted_data:
-            return None
+            return None, False
             
         lead, created = Lead.objects.get_or_create(conversation=conversation)
         
@@ -24,4 +24,4 @@ class LeadService:
         if updated:
             lead.save()
             
-        return lead
+        return lead, created

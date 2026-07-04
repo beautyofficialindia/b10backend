@@ -1,5 +1,6 @@
 from django.core.mail import send_mail
 from django.conf import settings
+from apps.analytics.services.analytics_service import AnalyticsService
 
 class NotificationService:
     def send_lead_notification(self, lead):
@@ -30,3 +31,4 @@ Requirements:
             recipient_list=['sales@b10itsolution.com'],
             fail_silently=False,
         )
+        AnalyticsService.track_email_notification_sent(lead)

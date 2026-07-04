@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'apps.chatbot',
     'apps.leads',
+    'apps.analytics',
 ]
 
 MIDDLEWARE = [

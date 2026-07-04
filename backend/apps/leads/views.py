@@ -11,6 +11,7 @@ from .serializers import (
     LeadUpdateSerializer, 
     DashboardSummarySerializer
 )
+from apps.analytics.services.analytics_service import AnalyticsService
 
 class DashboardSummaryAPIView(APIView):
     def get(self, request, *args, **kwargs):
@@ -54,3 +55,12 @@ class LeadDetailAPIView(RetrieveUpdateAPIView):
         if self.request.method in ['PATCH', 'PUT']:
             return LeadUpdateSerializer
         return LeadDetailSerializer
+        
+    def perform_update(self, serializer):
+        old_status = self.get_object().status
+        lead = serializer.save()
+        if old_status != lead.status:
+            if lead.status == 'converted':
+                AnalyticsService.track_lead_converted(lead)
+            elif lead.status == 'lost':
+                AnalyticsService.track_lead_lost(lead)
