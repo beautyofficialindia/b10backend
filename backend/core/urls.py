@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/v1/', include('apps.chatbot.urls')),
     path('api/v1/admin/', include('apps.leads.urls')),
     path('api/v1/admin/analytics/', include('apps.analytics.urls')),
+    path('api/v1/admin/crm/', include('apps.crm.urls')),
 ]

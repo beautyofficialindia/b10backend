@@ -12,6 +12,7 @@ from .serializers import (
     DashboardSummarySerializer
 )
 from apps.analytics.services.analytics_service import AnalyticsService
+from apps.crm.services.crm_service import CRMService
 
 class DashboardSummaryAPIView(APIView):
     def get(self, request, *args, **kwargs):
@@ -60,6 +61,7 @@ class LeadDetailAPIView(RetrieveUpdateAPIView):
         old_status = self.get_object().status
         lead = serializer.save()
         if old_status != lead.status:
+            CRMService.log_status_change(lead, old_status, lead.status)
             if lead.status == 'converted':
                 AnalyticsService.track_lead_converted(lead)
             elif lead.status == 'lost':

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.chatbot',
     'apps.leads',
     'apps.analytics',
+    'apps.crm',
 ]
 
 MIDDLEWARE = [

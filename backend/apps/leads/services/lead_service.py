@@ -13,6 +13,10 @@ class LeadService:
             
         lead, created = Lead.objects.get_or_create(conversation=conversation)
         
+        if created:
+            from apps.crm.services.crm_service import CRMService
+            CRMService.log_activity(lead, 'lead_created')
+        
         updated = False
         for field, value in extracted_data.items():
             current_value = getattr(lead, field)
