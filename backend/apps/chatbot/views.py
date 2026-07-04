@@ -2,12 +2,36 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
-from .serializers import ChatRequestSerializer
+from drf_spectacular.utils import extend_schema, OpenApiExample
+from .serializers import ChatRequestSerializer, ChatResponseSerializer
 from .services.chat_service import ChatService
 
 class ChatAPIView(APIView):
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
 
+    @extend_schema(
+        request=ChatRequestSerializer,
+        responses={200: ChatResponseSerializer},
+        examples=[
+            OpenApiExample(
+                'Start New Conversation',
+                description='Starts a new conversation.',
+                value={
+                    "message": "What services does B10 IT Solution provide?"
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                'Continue Conversation',
+                description='Continues an existing conversation.',
+                value={
+                    "message": "Tell me more about your AI services.",
+                    "session_id": "<session-id-returned-from-previous-response>"
+                },
+                request_only=True,
+            )
+        ]
+    )
     def post(self, request, *args, **kwargs):
         serializer = ChatRequestSerializer(data=request.data)
         

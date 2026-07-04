@@ -16,9 +16,23 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+class HealthCheckView(APIView):
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request, *args, **kwargs):
+        return Response({"status": "ok"})
 
 urlpatterns = [
+    path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('admin/', admin.site.urls),
+    path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/', include('apps.chatbot.urls')),
     path('api/v1/admin/', include('apps.leads.urls')),
     path('api/v1/admin/analytics/', include('apps.analytics.urls')),

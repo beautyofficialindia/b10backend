@@ -7,6 +7,9 @@ from apps.leads.services.notification_service import NotificationService
 from apps.analytics.services.analytics_service import AnalyticsService
 from django.utils import timezone
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ChatService:
     def __init__(self):
@@ -79,7 +82,7 @@ class ChatService:
             bot_response = self.client.get_completion(messages)
         except Exception as e:
             bot_response = "I'm sorry, I'm currently experiencing technical difficulties. Please try again later."
-            print(f"Error calling OpenRouter: {e}")
+            logger.error(f"Error calling OpenRouter: {e}")
 
         # 7. Save bot message to DB
         Message.objects.create(session=session, role='assistant', content=bot_response)

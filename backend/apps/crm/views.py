@@ -13,8 +13,10 @@ from .serializers import (
     CRMDashboardSerializer
 )
 from .services.crm_service import CRMService
+from apps.accounts.permissions import IsAdminUser, IsAdminOrSales
 
 class CRMDashboardAPIView(APIView):
+    permission_classes = [IsAdminUser]
     def get(self, request, *args, **kwargs):
         today = timezone.now().date()
         pending_followups = LeadFollowUp.objects.filter(status='pending').count()
@@ -28,6 +30,7 @@ class CRMDashboardAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class LeadActivityListCreateAPIView(ListCreateAPIView):
+    permission_classes = [IsAdminOrSales]
     serializer_class = LeadActivitySerializer
 
     def get_queryset(self):
@@ -38,12 +41,14 @@ class LeadActivityListCreateAPIView(ListCreateAPIView):
         serializer.save(lead=lead)
 
 class LeadStatusHistoryListAPIView(ListAPIView):
+    permission_classes = [IsAdminOrSales]
     serializer_class = LeadStatusHistorySerializer
 
     def get_queryset(self):
         return LeadStatusHistory.objects.filter(lead_id=self.kwargs['id'])
 
 class LeadFollowUpListCreateAPIView(ListCreateAPIView):
+    permission_classes = [IsAdminOrSales]
     serializer_class = LeadFollowUpSerializer
 
     def get_queryset(self):
@@ -55,6 +60,7 @@ class LeadFollowUpListCreateAPIView(ListCreateAPIView):
         CRMService.log_activity(lead, 'followup_created', f"Follow-up scheduled for {followup.scheduled_at}")
 
 class FollowUpDetailAPIView(RetrieveUpdateAPIView):
+    permission_classes = [IsAdminOrSales]
     queryset = LeadFollowUp.objects.all()
     serializer_class = LeadFollowUpSerializer
     lookup_field = 'id'

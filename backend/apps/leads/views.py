@@ -13,8 +13,10 @@ from .serializers import (
 )
 from apps.analytics.services.analytics_service import AnalyticsService
 from apps.crm.services.crm_service import CRMService
+from apps.accounts.permissions import IsAdminUser, IsAdminOrSales, IsAdminSalesOrSupport
 
 class DashboardSummaryAPIView(APIView):
+    permission_classes = [IsAdminUser]
     def get(self, request, *args, **kwargs):
         leads = Lead.objects.all()
         summary = {
@@ -33,6 +35,7 @@ class LeadPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
 
 class LeadListAPIView(ListAPIView):
+    permission_classes = [IsAdminOrSales]
     queryset = Lead.objects.all()
     serializer_class = LeadListSerializer
     pagination_class = LeadPagination
@@ -51,6 +54,11 @@ class LeadListAPIView(ListAPIView):
 class LeadDetailAPIView(RetrieveUpdateAPIView):
     queryset = Lead.objects.all()
     lookup_field = 'id'
+
+    def get_permissions(self):
+        if self.request.method in ['PATCH', 'PUT']:
+            return [IsAdminOrSales()]
+        return [IsAdminSalesOrSupport()]
 
     def get_serializer_class(self):
         if self.request.method in ['PATCH', 'PUT']:

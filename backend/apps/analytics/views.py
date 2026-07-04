@@ -5,8 +5,10 @@ from django.db.models import Count
 from django.db.models.functions import TruncDate
 from .models import AnalyticsEvent
 from apps.leads.models import Lead
+from apps.accounts.permissions import IsAdminUser
 
 class AnalyticsDashboardAPIView(APIView):
+    permission_classes = [IsAdminUser]
     def get(self, request, *args, **kwargs):
         total_chats = AnalyticsEvent.objects.filter(event_type='chat_started').count()
         total_messages = AnalyticsEvent.objects.filter(event_type='message_sent').count()
@@ -33,6 +35,8 @@ class AnalyticsDashboardAPIView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class AnalyticsTimelineAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
     def get(self, request, *args, **kwargs):
         # Group by date and event_type
         events = (
@@ -53,6 +57,8 @@ class AnalyticsTimelineAPIView(APIView):
         return Response(timeline, status=status.HTTP_200_OK)
 
 class AnalyticsFunnelAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
     def get(self, request, *args, **kwargs):
         total_chats = AnalyticsEvent.objects.filter(event_type='chat_started').count()
         total_leads = Lead.objects.count()
