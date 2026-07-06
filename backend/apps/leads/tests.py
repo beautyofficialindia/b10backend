@@ -15,6 +15,8 @@ class QualificationTests(TestCase):
         self.assertIn('email', missing)
 
     def test_qualified(self):
+        self.lead.full_name = 'Test User'
+        self.lead.company_name = 'Test Company'
         self.lead.email = 'test@test.com'
         self.lead.industry = 'Tech'
         self.lead.project_type = 'Web'
@@ -23,3 +25,14 @@ class QualificationTests(TestCase):
         status, missing = self.qual_service.calculate_status(self.lead)
         self.assertEqual(status, 'qualified')
         self.assertEqual(len(missing), 0)
+
+    def test_name_and_company_required(self):
+        self.lead.email = 'test@test.com'
+        self.lead.industry = 'Tech'
+        self.lead.project_type = 'Web'
+        self.lead.requirements = 'Build a site'
+        self.lead.save()
+        status, missing = self.qual_service.calculate_status(self.lead)
+        self.assertEqual(status, 'gathering')
+        self.assertIn('full_name', missing)
+        self.assertIn('company_name', missing)

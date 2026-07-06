@@ -14,9 +14,16 @@ class AnalyticsEvent(models.Model):
         ('lead_converted', 'Lead Converted'),
         ('lead_lost', 'Lead Lost'),
         ('email_notification_sent', 'Email Notification Sent'),
+        ('scope_refusal', 'Scope Refusal'),
+        ('escalation_triggered', 'Escalation Triggered'),
+        ('feedback_submitted', 'Feedback Submitted'),
+        ('llm_call', 'LLM Call'),
+        ('lead_field_captured', 'Lead Field Captured'),
+        ('chat_error', 'Chat Error'),
     ]
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
     metadata = models.JSONField(default=dict, blank=True)
+    occurred_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

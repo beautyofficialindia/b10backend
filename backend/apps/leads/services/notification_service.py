@@ -2,9 +2,13 @@ from django.core.mail import send_mail
 from django.conf import settings
 from apps.analytics.services.analytics_service import AnalyticsService
 from apps.crm.services.crm_service import CRMService
+from apps.leads.models import LeadEvent
 
 class NotificationService:
     def send_lead_notification(self, lead):
+        if lead.notification_sent:
+            return False
+
         subject = f"New Qualified Lead: {lead.project_type} for {lead.industry}"
         
         message = f"""
@@ -34,3 +38,9 @@ Requirements:
         )
         AnalyticsService.track_email_notification_sent(lead)
         CRMService.log_activity(lead, 'email_sent')
+        LeadEvent.objects.create(
+            lead=lead,
+            event_type='notification_sent',
+            metadata={"channel": "email"}
+        )
+        return True
