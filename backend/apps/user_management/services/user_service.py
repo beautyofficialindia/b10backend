@@ -1,9 +1,15 @@
+from __future__ import annotations
+
+import re
+from datetime import datetime, time
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, QuerySet
+from django.utils import timezone as tz
 from django.utils.dateparse import parse_datetime, parse_date
 
 from apps.user_management.models import UserAuditLog
@@ -11,35 +17,40 @@ from apps.user_management.models import UserAuditLog
 User = get_user_model()
 
 
-def _parse_date_param(value):
+def _parse_date_param(value: str | None) -> datetime | None:
     """
-    Parse a date/datetime string from query parameter. Handles ISO 8601 variants.
-    Returns a timezone-aware datetime or raises ValidationError for invalid input.
-    Returns None only if value is None.
+    Parse a date/datetime string from a query parameter into a timezone-aware datetime.
+
+    Accepted formats:
+        - YYYY-MM-DD                   (date-only, treated as midnight UTC)
+        - YYYY-MM-DDTHH:MM:SSZ        (ISO 8601 with Z suffix)
+        - YYYY-MM-DDTHH:MM:SS+HH:MM  (ISO 8601 with timezone offset)
+        - YYYY-MM-DDTHH:MM:SS+HHMM   (offset without colon, e.g. +0530)
+
+    Returns:
+        A timezone-aware datetime, or None if value is None.
+
+    Raises:
+        ValidationError: If the string cannot be parsed into any accepted format.
     """
     if value is None:
         return None
     if not isinstance(value, str):
-        return value
+        return value  # type: ignore[return-value]
 
-    from django.utils import timezone as tz
-    from datetime import datetime, time
-    import re
-
-    # Try full datetime first
+    # Try full datetime first (handles Z and +HH:MM)
     result = parse_datetime(value)
     if result:
-        # Ensure timezone-aware
         if tz.is_naive(result):
             result = tz.make_aware(result)
         return result
 
     # Try date-only (YYYY-MM-DD)
-    result = parse_date(value)
-    if result:
-        return tz.make_aware(datetime.combine(result, time.min))
+    date_result = parse_date(value)
+    if date_result:
+        return tz.make_aware(datetime.combine(date_result, time.min))
 
-    # Try with manual timezone fix (e.g. +0530 → +05:30)
+    # Try with manual timezone fix (e.g. +0530 -> +05:30)
     fixed = re.sub(r'([+-]\d{2})(\d{2})$', r'\1:\2', value)
     result = parse_datetime(fixed)
     if result:
@@ -47,9 +58,11 @@ def _parse_date_param(value):
             result = tz.make_aware(result)
         return result
 
-    # All parsing failed — invalid date string
+    # All parsing failed
     raise ValidationError(
-        {'detail': f"Invalid date format: '{value}'. Use ISO 8601 (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ)."}
+        {'detail': f"Invalid date format: '{value}'. "
+                   f"Accepted formats: YYYY-MM-DD, YYYY-MM-DDTHH:MM:SSZ, "
+                   f"YYYY-MM-DDTHH:MM:SS+HH:MM."}
     )
 
 
