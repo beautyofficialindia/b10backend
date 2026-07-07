@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.knowledge_base',
     'apps.user_management',
     'apps.role_management',
+    'apps.settings_management',
 ]
 
 MIDDLEWARE = [

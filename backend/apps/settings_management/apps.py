@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class SettingsManagementConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.settings_management'
+    verbose_name = 'Settings Management'
