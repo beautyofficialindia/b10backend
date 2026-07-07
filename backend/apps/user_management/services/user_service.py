@@ -12,28 +12,45 @@ User = get_user_model()
 
 
 def _parse_date_param(value):
-    """Parse a date/datetime string from query parameter. Handles ISO 8601 variants."""
+    """
+    Parse a date/datetime string from query parameter. Handles ISO 8601 variants.
+    Returns a timezone-aware datetime or raises ValidationError for invalid input.
+    Returns None only if value is None.
+    """
     if value is None:
         return None
     if not isinstance(value, str):
         return value
+
+    from django.utils import timezone as tz
+    from datetime import datetime, time
+    import re
+
     # Try full datetime first
     result = parse_datetime(value)
     if result:
+        # Ensure timezone-aware
+        if tz.is_naive(result):
+            result = tz.make_aware(result)
         return result
-    # Try date-only
+
+    # Try date-only (YYYY-MM-DD)
     result = parse_date(value)
     if result:
-        from django.utils import timezone as tz
-        from datetime import datetime, time
         return tz.make_aware(datetime.combine(result, time.min))
+
     # Try with manual timezone fix (e.g. +0530 → +05:30)
-    import re
     fixed = re.sub(r'([+-]\d{2})(\d{2})$', r'\1:\2', value)
     result = parse_datetime(fixed)
-    return result
+    if result:
+        if tz.is_naive(result):
+            result = tz.make_aware(result)
+        return result
 
-User = get_user_model()
+    # All parsing failed — invalid date string
+    raise ValidationError(
+        {'detail': f"Invalid date format: '{value}'. Use ISO 8601 (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ)."}
+    )
 
 
 class UserService:
@@ -93,20 +110,16 @@ class UserService:
         # Date range filters
         if date_joined_after:
             parsed = _parse_date_param(date_joined_after)
-            if parsed:
-                qs = qs.filter(date_joined__gte=parsed)
+            qs = qs.filter(date_joined__gte=parsed)
         if date_joined_before:
             parsed = _parse_date_param(date_joined_before)
-            if parsed:
-                qs = qs.filter(date_joined__lte=parsed)
+            qs = qs.filter(date_joined__lte=parsed)
         if last_login_after:
             parsed = _parse_date_param(last_login_after)
-            if parsed:
-                qs = qs.filter(last_login__gte=parsed)
+            qs = qs.filter(last_login__gte=parsed)
         if last_login_before:
             parsed = _parse_date_param(last_login_before)
-            if parsed:
-                qs = qs.filter(last_login__lte=parsed)
+            qs = qs.filter(last_login__lte=parsed)
 
         # Ordering
         if ordering:

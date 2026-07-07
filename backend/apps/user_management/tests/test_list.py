@@ -242,6 +242,22 @@ class FilterTests(BaseUserManagementTest):
         data = resp.json()
         self.assertGreater(len(data['data']), 0)
 
+    def test_filter_invalid_date_returns_400(self):
+        """An invalid date string returns a 400 error, not silently ignored."""
+        resp = self.admin_client.get('/api/v1/admin/users/?date_joined_after=not-a-date')
+        self.assertEqual(resp.status_code, 400)
+        data = resp.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(data['code'], 'validation_error')
+
+    def test_filter_date_only_format(self):
+        """Date-only format (YYYY-MM-DD) is accepted and works correctly."""
+        yesterday = (timezone.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        resp = self.admin_client.get(f'/api/v1/admin/users/?date_joined_after={yesterday}')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertGreater(len(data['data']), 0)
+
 
 class OrderingTests(BaseUserManagementTest):
     """Tests for ordering results."""

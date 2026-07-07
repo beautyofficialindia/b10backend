@@ -98,18 +98,27 @@ class UserViewSet(
         """List backend users with search, filtering, and ordering."""
         params = request.query_params
 
-        queryset = UserService.list_users(
-            search=params.get('search'),
-            ordering=params.get('ordering'),
-            is_active=_parse_bool(params.get('is_active')),
-            is_staff=_parse_bool(params.get('is_staff')),
-            is_superuser=_parse_bool(params.get('is_superuser')),
-            group=params.get('group'),
-            date_joined_after=params.get('date_joined_after'),
-            date_joined_before=params.get('date_joined_before'),
-            last_login_after=params.get('last_login_after'),
-            last_login_before=params.get('last_login_before'),
-        )
+        try:
+            queryset = UserService.list_users(
+                search=params.get('search'),
+                ordering=params.get('ordering'),
+                is_active=_parse_bool(params.get('is_active')),
+                is_staff=_parse_bool(params.get('is_staff')),
+                is_superuser=_parse_bool(params.get('is_superuser')),
+                group=params.get('group'),
+                date_joined_after=params.get('date_joined_after'),
+                date_joined_before=params.get('date_joined_before'),
+                last_login_after=params.get('last_login_after'),
+                last_login_before=params.get('last_login_before'),
+            )
+        except ValidationError as e:
+            error_dict = e.message_dict if hasattr(e, 'message_dict') else {'detail': e.messages}
+            return error_response(
+                code='validation_error',
+                message='Invalid filter parameter',
+                details=error_dict,
+                status=400,
+            )
 
         page = self.paginate_queryset(queryset)
         if page is not None:
