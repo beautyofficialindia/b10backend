@@ -2,17 +2,15 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
 import { authApi } from '../api';
 import type { LoginRequest, User } from '../types';
 
 const AUTH_QUERY_KEY = ['auth', 'me'];
 
-function getTokens() {
-  if (typeof window === 'undefined') return { access: null, refresh: null };
-  return {
-    access: localStorage.getItem('access_token'),
-    refresh: localStorage.getItem('refresh_token'),
-  };
+function hasAccessToken(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem('access_token');
 }
 
 function setTokens(access: string, refresh: string) {
@@ -29,11 +27,12 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const { data: user, isLoading, isError } = useQuery<User>({
+  const { data: user, isLoading, isError, isFetched } = useQuery<User>({
     queryKey: AUTH_QUERY_KEY,
     queryFn: authApi.getMe,
     retry: false,
-    enabled: !!getTokens().access,
+    enabled: hasAccessToken(),
+    staleTime: 5 * 60 * 1000, // 5 min
   });
 
   const loginMutation = useMutation({
@@ -45,25 +44,35 @@ export function useAuth() {
     },
   });
 
-  const logout = async () => {
-    const { refresh } = getTokens();
+  const logout = useCallback(async () => {
+    const refresh = localStorage.getItem('refresh_token');
     try {
       if (refresh) await authApi.logout(refresh);
     } catch {
-      // Ignore logout errors
+      // Ignore logout API errors
     } finally {
       clearTokens();
       queryClient.clear();
       router.push('/login');
     }
-  };
+  }, [queryClient, router]);
 
-  const isAuthenticated = !!user && !isError;
+  // Determine auth state:
+  // - If no token exists and query hasn't fetched, user is not authenticated
+  // - If query is loading, we're restoring session
+  // - If query errored, session is invalid
+  const isAuthenticated = useMemo(() => !!user && !isError, [user, isError]);
+
+  // isLoading should be true only while actively checking session
+  const isCheckingAuth = isLoading && hasAccessToken();
+  // If no token exists, we're not loading — user is simply not authenticated
+  const effectiveLoading = hasAccessToken() ? isCheckingAuth : false;
 
   return {
-    user,
-    isLoading,
+    user: user ?? null,
+    isLoading: effectiveLoading,
     isAuthenticated,
+    isFetched,
     login: loginMutation.mutateAsync,
     loginError: loginMutation.error,
     isLoginLoading: loginMutation.isPending,
