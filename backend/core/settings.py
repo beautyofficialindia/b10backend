@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.crm',
     'apps.accounts',
     'apps.knowledge_base',
+    'apps.user_management',
 ]
 
 MIDDLEWARE = [

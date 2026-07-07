@@ -41,4 +41,5 @@ urlpatterns = [
     path('api/v1/admin/crm/', include('apps.crm.urls')),
     path('api/v1/kb/', include((kb_public_urls, 'kb_public'))),
     path('api/v1/admin/kb/', include((kb_admin_urls, 'kb_admin'))),
+    path('api/v1/admin/users/', include('apps.user_management.urls')),
 ]
