@@ -27,6 +27,8 @@ class HealthCheckView(APIView):
     def get(self, request, *args, **kwargs):
         return Response({"status": "ok"})
 
+from apps.knowledge_base.urls import admin_urlpatterns as kb_admin_urls, public_urlpatterns as kb_public_urls
+
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health-check'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -37,4 +39,6 @@ urlpatterns = [
     path('api/v1/admin/', include('apps.leads.urls')),
     path('api/v1/admin/analytics/', include('apps.analytics.urls')),
     path('api/v1/admin/crm/', include('apps.crm.urls')),
+    path('api/v1/kb/', include((kb_public_urls, 'kb_public'))),
+    path('api/v1/admin/kb/', include((kb_admin_urls, 'kb_admin'))),
 ]

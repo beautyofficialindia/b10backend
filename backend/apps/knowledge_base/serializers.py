@@ -61,3 +61,10 @@ class KnowledgeEntryWriteSerializer(serializers.Serializer):
             # For PATCH: make all fields optional
             for field_name in self.fields:
                 self.fields[field_name].required = False
+
+    def validate(self, attrs):
+        # In partial mode, only return fields that were actually submitted
+        if hasattr(self, 'initial_data'):
+            submitted_keys = set(self.initial_data.keys())
+            attrs = {k: v for k, v in attrs.items() if k in submitted_keys}
+        return attrs

@@ -296,3 +296,258 @@ class KnowledgeEntrySerializerTests(TestCase):
         })
         self.assertFalse(serializer.is_valid())
         self.assertIn('source', serializer.errors)
+
+
+from django.contrib.auth.models import Group
+from django.test import override_settings
+from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
+
+NO_THROTTLE = {
+    'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_THROTTLE_RATES': {},
+}
+
+
+@override_settings(REST_FRAMEWORK={**NO_THROTTLE})
+class PublicEndpointTests(APITestCase):
+    """Integration tests for public read endpoints."""
+
+    def setUp(self):
+        self.published = KnowledgeEntry.objects.create(
+            category='faq', title='Public FAQ', content='Public answer', status='published'
+        )
+        self.draft = KnowledgeEntry.objects.create(
+            category='faq', title='Draft FAQ', content='Draft answer', status='draft'
+        )
+        self.deleted = KnowledgeEntry.objects.create(
+            category='faq', title='Deleted FAQ', content='Deleted answer',
+            status='published', is_deleted=True
+        )
+
+    def test_list_returns_only_published_non_deleted(self):
+        response = self.client.get('/api/v1/kb/entries/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['title'], 'Public FAQ')
+
+    def test_list_category_filter(self):
+        KnowledgeEntry.objects.create(
+            category='service', title='Web Dev', content='apps', status='published'
+        )
+        response = self.client.get('/api/v1/kb/entries/?category=service')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['category'], 'service')
+
+    def test_list_search_filter(self):
+        response = self.client.get('/api/v1/kb/entries/?search=Public')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(len(data), 1)
+
+    def test_detail_published_200(self):
+        response = self.client.get(f'/api/v1/kb/entries/{self.published.slug}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['title'], 'Public FAQ')
+
+    def test_detail_draft_404(self):
+        response = self.client.get(f'/api/v1/kb/entries/{self.draft.slug}/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_detail_deleted_404(self):
+        response = self.client.get(f'/api/v1/kb/entries/{self.deleted.slug}/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_detail_nonexistent_404(self):
+        response = self.client.get('/api/v1/kb/entries/nonexistent-slug/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_pagination_metadata(self):
+        response = self.client.get('/api/v1/kb/entries/')
+        self.assertEqual(response.status_code, 200)
+        meta = response.json().get('meta', {})
+        self.assertIn('pagination', meta)
+        pagination = meta['pagination']
+        self.assertIn('page', pagination)
+        self.assertIn('page_size', pagination)
+        self.assertIn('total_count', pagination)
+        self.assertIn('total_pages', pagination)
+
+
+@override_settings(REST_FRAMEWORK={**NO_THROTTLE})
+class AdminEndpointTests(APITestCase):
+    """Integration tests for admin CRUD and status transition endpoints."""
+
+    def setUp(self):
+        # Create admin user
+        self.admin_user = User.objects.create_user(username='admin_user', password='pass')
+        admin_group = Group.objects.create(name='Admin')
+        self.admin_user.groups.add(admin_group)
+
+        # Create non-admin user
+        self.sales_user = User.objects.create_user(username='sales_user', password='pass')
+        sales_group = Group.objects.create(name='Sales')
+        self.sales_user.groups.add(sales_group)
+
+        # Create entry
+        self.entry = KnowledgeEntry.objects.create(
+            category='service', title='Test Service', content='Description', status='draft'
+        )
+
+        # Get admin JWT token
+        refresh = RefreshToken.for_user(self.admin_user)
+        self.admin_token = str(refresh.access_token)
+
+        refresh_sales = RefreshToken.for_user(self.sales_user)
+        self.sales_token = str(refresh_sales.access_token)
+
+    def _auth_headers(self, token):
+        return {'HTTP_AUTHORIZATION': f'Bearer {token}'}
+
+    def test_unauthenticated_401(self):
+        response = self.client.get('/api/v1/admin/kb/entries/')
+        self.assertEqual(response.status_code, 401)
+
+    def test_non_admin_403(self):
+        response = self.client.get(
+            '/api/v1/admin/kb/entries/',
+            **self._auth_headers(self.sales_token)
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_list_200(self):
+        response = self.client.get(
+            '/api/v1/admin/kb/entries/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(len(data), 1)
+
+    def test_create_valid_201(self):
+        response = self.client.post(
+            '/api/v1/admin/kb/entries/',
+            data={'category': 'faq', 'title': 'New FAQ', 'content': 'Answer'},
+            format='json',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['data']['status'], 'draft')
+        self.assertEqual(response.json()['data']['created_by'], 'admin_user')
+
+    def test_create_invalid_400(self):
+        response = self.client.post(
+            '/api/v1/admin/kb/entries/',
+            data={'content': 'No category or title'},
+            format='json',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_retrieve_200(self):
+        response = self.client.get(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['title'], 'Test Service')
+
+    def test_partial_update_200(self):
+        response = self.client.patch(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/',
+            data={'title': 'Updated Service'},
+            format='json',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['title'], 'Updated Service')
+
+    def test_soft_delete_204(self):
+        response = self.client.delete(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 204)
+        self.entry.refresh_from_db()
+        self.assertTrue(self.entry.is_deleted)
+
+    def test_publish_200(self):
+        response = self.client.post(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/publish/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['status'], 'published')
+
+    def test_unpublish_200(self):
+        self.entry.status = 'published'
+        self.entry.save()
+        response = self.client.post(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/unpublish/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['status'], 'draft')
+
+    def test_archive_200(self):
+        response = self.client.post(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/archive/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['status'], 'archived')
+
+    def test_restore_soft_deleted_200(self):
+        self.entry.is_deleted = True
+        self.entry.save()
+        response = self.client.post(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/restore/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.entry.refresh_from_db()
+        self.assertFalse(self.entry.is_deleted)
+
+    def test_restore_non_deleted_404(self):
+        response = self.client.post(
+            f'/api/v1/admin/kb/entries/{self.entry.pk}/restore/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_nonexistent_uuid_404(self):
+        import uuid
+        fake_id = uuid.uuid4()
+        response = self.client.get(
+            f'/api/v1/admin/kb/entries/{fake_id}/',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_status_filter(self):
+        KnowledgeEntry.objects.create(
+            category='faq', title='Published FAQ', content='x', status='published'
+        )
+        response = self.client.get(
+            '/api/v1/admin/kb/entries/?status=published',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['status'], 'published')
+
+    def test_ordering(self):
+        KnowledgeEntry.objects.create(
+            category='faq', title='AAA', content='x', status='draft'
+        )
+        response = self.client.get(
+            '/api/v1/admin/kb/entries/?ordering=title',
+            **self._auth_headers(self.admin_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(data[0]['title'], 'AAA')
