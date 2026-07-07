@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'apps.analytics',
     'apps.crm',
     'apps.accounts',
+    'apps.knowledge_base',
 ]
 
 MIDDLEWARE = [
@@ -189,3 +190,6 @@ LOGGING = {
         },
     },
 }
+
+# Knowledge Base source: 'json' (Phase 1, default) or 'database' (Phase 2, future)
+KNOWLEDGE_BASE_SOURCE = env.str('KNOWLEDGE_BASE_SOURCE', default='json')
