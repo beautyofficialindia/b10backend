@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -57,7 +59,6 @@ class UserCreateSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         """Validate username format (Django default: alphanumeric + @.+-_)."""
-        import re
         if not re.match(r'^[\w.@+-]+$', value):
             raise serializers.ValidationError(
                 "Username may only contain letters, digits, and @/./+/-/_ characters."
