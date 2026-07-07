@@ -551,3 +551,73 @@ class AdminEndpointTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()['data']
         self.assertEqual(data[0]['title'], 'AAA')
+
+
+class ChatbotCompatibilityTests(TestCase):
+    """Verify KnowledgeService output matches KnowledgeLoader format."""
+
+    def test_scoped_knowledge_format(self):
+        """get_scoped_knowledge_as_text produces correct section labels and JSON format."""
+        KnowledgeEntry.objects.create(
+            category='company', title='Company Info',
+            content='We are B10 IT Solution',
+            structured_data={'name': 'B10 IT Solution', 'founded': 2020},
+            status='published',
+        )
+        KnowledgeEntry.objects.create(
+            category='service', title='Web Development',
+            content='Custom web apps',
+            structured_data={'technologies': ['React', 'Django']},
+            status='published',
+        )
+
+        text = KnowledgeService.get_scoped_knowledge_as_text(
+            company=True, services=True, industries=False, faq=False, contact=False
+        )
+
+        # Verify section labels
+        self.assertIn('Company Information:', text)
+        self.assertIn('Services Provided:', text)
+
+        # Verify omitted categories
+        self.assertNotIn('Industries Served:', text)
+        self.assertNotIn('Frequently Asked Questions (FAQ):', text)
+        self.assertNotIn('Contact Information:', text)
+
+        # Verify JSON formatting (indent=2)
+        self.assertIn('  "title":', text)
+        self.assertIn('  "content":', text)
+
+        # Verify structured_data is merged into the dict
+        self.assertIn('"name": "B10 IT Solution"', text)
+        self.assertIn('"technologies"', text)
+
+    def test_empty_category_omitted(self):
+        """Categories with no published entries are omitted entirely."""
+        text = KnowledgeService.get_scoped_knowledge_as_text(
+            company=True, services=True, industries=True, faq=True, contact=True
+        )
+        self.assertEqual(text, '')
+
+    def test_section_ordering(self):
+        """Sections appear in correct order: company, services, industries, faq, contact."""
+        for cat, title in [
+            ('company', 'Co'), ('service', 'Svc'),
+            ('industry', 'Ind'), ('faq', 'FAQ Q'), ('contact', 'Contact'),
+        ]:
+            KnowledgeEntry.objects.create(
+                category=cat, title=title, content='text', status='published'
+            )
+
+        text = KnowledgeService.get_scoped_knowledge_as_text()
+
+        company_pos = text.index('Company Information:')
+        services_pos = text.index('Services Provided:')
+        industries_pos = text.index('Industries Served:')
+        faq_pos = text.index('Frequently Asked Questions (FAQ):')
+        contact_pos = text.index('Contact Information:')
+
+        self.assertLess(company_pos, services_pos)
+        self.assertLess(services_pos, industries_pos)
+        self.assertLess(industries_pos, faq_pos)
+        self.assertLess(faq_pos, contact_pos)
