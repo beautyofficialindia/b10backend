@@ -283,6 +283,13 @@ class UserService:
                     {'is_superuser': 'Cannot remove superuser status from the last active superuser.'}
                 )
 
+        # Last active superuser protection: cannot set is_active=False via update
+        if 'is_active' in data and data['is_active'] is False:
+            if UserService._is_last_active_superuser(user):
+                raise ValidationError(
+                    {'is_active': 'Cannot deactivate the last active superuser.'}
+                )
+
         # Update scalar fields
         scalar_fields = ['first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']
         for field in scalar_fields:

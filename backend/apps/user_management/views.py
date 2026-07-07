@@ -246,6 +246,9 @@ class UserViewSet(
             elif 'is_superuser' in error_dict:
                 code = 'last_superuser_protection'
                 message = error_dict['is_superuser'][0] if isinstance(error_dict['is_superuser'], list) else error_dict['is_superuser']
+            elif 'is_active' in error_dict:
+                code = 'last_superuser_protection'
+                message = error_dict['is_active'][0] if isinstance(error_dict['is_active'], list) else error_dict['is_active']
 
             return error_response(
                 code=code,
