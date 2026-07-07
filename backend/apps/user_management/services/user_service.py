@@ -4,8 +4,34 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, QuerySet
+from django.utils.dateparse import parse_datetime, parse_date
 
 from apps.user_management.models import UserAuditLog
+
+User = get_user_model()
+
+
+def _parse_date_param(value):
+    """Parse a date/datetime string from query parameter. Handles ISO 8601 variants."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+    # Try full datetime first
+    result = parse_datetime(value)
+    if result:
+        return result
+    # Try date-only
+    result = parse_date(value)
+    if result:
+        from django.utils import timezone as tz
+        from datetime import datetime, time
+        return tz.make_aware(datetime.combine(result, time.min))
+    # Try with manual timezone fix (e.g. +0530 → +05:30)
+    import re
+    fixed = re.sub(r'([+-]\d{2})(\d{2})$', r'\1:\2', value)
+    result = parse_datetime(fixed)
+    return result
 
 User = get_user_model()
 
@@ -66,13 +92,21 @@ class UserService:
 
         # Date range filters
         if date_joined_after:
-            qs = qs.filter(date_joined__gte=date_joined_after)
+            parsed = _parse_date_param(date_joined_after)
+            if parsed:
+                qs = qs.filter(date_joined__gte=parsed)
         if date_joined_before:
-            qs = qs.filter(date_joined__lte=date_joined_before)
+            parsed = _parse_date_param(date_joined_before)
+            if parsed:
+                qs = qs.filter(date_joined__lte=parsed)
         if last_login_after:
-            qs = qs.filter(last_login__gte=last_login_after)
+            parsed = _parse_date_param(last_login_after)
+            if parsed:
+                qs = qs.filter(last_login__gte=parsed)
         if last_login_before:
-            qs = qs.filter(last_login__lte=last_login_before)
+            parsed = _parse_date_param(last_login_before)
+            if parsed:
+                qs = qs.filter(last_login__lte=parsed)
 
         # Ordering
         if ordering:
