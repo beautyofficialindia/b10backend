@@ -1,35 +1,40 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '@/features/auth';
 import { PageContainer } from '@/components/layout';
-import { StatCard, StatusBadge } from '@/components/common';
+import { StatCard, StatusBadge, SkeletonCard, ErrorState } from '@/components/common';
 import { DataTable, type Column } from '@/components/tables';
 import { LineChartCard, BarChartCard } from '@/components/charts';
-import { ActivityTimeline } from '@/features/dashboard/components';
-import { kpiData, leadsOverTime, leadSources, recentActivity, recentLeads } from '@/features/dashboard/mock';
+import { useDashboardStats, useLeadSummary, useFunnel, useRecentLeads } from '@/features/dashboard/hooks/use-dashboard';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Users, TrendingUp, Target, Percent, Plus, BookOpen, Settings, UserPlus } from 'lucide-react';
-import Link from 'next/link';
+import type { Lead } from '@/features/dashboard/types';
 
-const kpiIcons = [Target, TrendingUp, Users, Percent];
-
-const leadsColumns: Column<typeof recentLeads[0]>[] = [
-  { key: 'name', header: 'Name', render: (row) => (
+const leadsColumns: Column<Lead>[] = [
+  { key: 'full_name', header: 'Name', render: (row) => (
     <div>
-      <p className="text-sm font-medium">{row.name}</p>
-      <p className="text-xs text-muted-foreground">{row.email}</p>
+      <p className="text-sm font-medium">{row.full_name || '—'}</p>
+      <p className="text-xs text-muted-foreground">{row.email || ''}</p>
     </div>
   )},
-  { key: 'company', header: 'Company' },
-  { key: 'project_type', header: 'Project Type' },
+  { key: 'company_name', header: 'Company', render: (row) => <span>{row.company_name || '—'}</span> },
+  { key: 'project_type', header: 'Project', render: (row) => <span>{row.project_type || '—'}</span> },
   { key: 'status', header: 'Status', render: (row) => (
-    <StatusBadge status={row.status === 'qualified' ? 'active' : 'pending'} label={row.status === 'qualified' ? 'Qualified' : 'Gathering'} />
+    <StatusBadge status={row.status === 'qualified' || row.status === 'converted' ? 'active' : row.status === 'lost' ? 'error' : 'pending'} label={row.status} />
   )},
-  { key: 'created', header: 'Created' },
+  { key: 'created_at', header: 'Created', render: (row) => (
+    <span className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</span>
+  )},
 ];
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const stats = useDashboardStats();
+  const leadSummary = useLeadSummary();
+  const funnel = useFunnel();
+  const recentLeads = useRecentLeads();
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -59,59 +64,105 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpiData.map((kpi, i) => (
-          <StatCard
-            key={kpi.title}
-            title={kpi.title}
-            value={kpi.value}
-            change={kpi.change}
-            changeType={kpi.changeType}
-            icon={kpiIcons[i]}
-          />
-        ))}
+        {stats.isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+        ) : stats.isError ? (
+          <div className="col-span-full"><ErrorState message="Failed to load statistics" onRetry={() => stats.refetch()} /></div>
+        ) : stats.data ? (
+          <>
+            <StatCard title="Total Leads" value={stats.data.total_leads.toLocaleString()} icon={Target} />
+            <StatCard title="Qualified Leads" value={stats.data.qualified_leads.toLocaleString()} icon={TrendingUp} />
+            <StatCard title="Converted" value={stats.data.converted_leads.toLocaleString()} icon={Users} />
+            <StatCard title="Conversion Rate" value={`${stats.data.conversion_rate}%`} icon={Percent} />
+          </>
+        ) : null}
       </div>
 
       {/* Charts Row */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <LineChartCard title="Leads Over Time" description="Monthly lead generation">
-          <div className="flex items-end justify-between h-full px-2 pb-2">
-            {leadsOverTime.map((d) => (
-              <div key={d.month} className="flex flex-col items-center gap-1">
-                <div
-                  className="w-8 rounded-t bg-primary/80 transition-all hover:bg-primary"
-                  style={{ height: `${(d.leads / 150) * 100}%`, minHeight: 4 }}
-                />
-                <span className="text-[10px] text-muted-foreground">{d.month}</span>
-              </div>
-            ))}
+        {/* Funnel Chart */}
+        {funnel.isLoading ? (
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <Skeleton className="h-4 w-32 mb-4" />
+            <Skeleton className="h-[200px] w-full" />
           </div>
-        </LineChartCard>
-        <BarChartCard title="Lead Sources" description="Where leads come from">
-          <div className="flex flex-col justify-center h-full gap-3 px-2">
-            {leadSources.map((s) => (
-              <div key={s.source} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-16 shrink-0">{s.source}</span>
-                <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded bg-primary/70 transition-all"
-                    style={{ width: `${(s.count / 50) * 100}%` }}
-                  />
+        ) : funnel.isError ? (
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <ErrorState message="Failed to load funnel" onRetry={() => funnel.refetch()} />
+          </div>
+        ) : (
+          <BarChartCard title="Qualification Funnel" description="Lead progression stages">
+            <div className="flex flex-col justify-center h-full gap-3 px-2">
+              {funnel.data?.map((stage) => (
+                <div key={stage.stage} className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-28 shrink-0 truncate">{stage.stage}</span>
+                  <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded bg-primary/70 transition-all"
+                      style={{ width: `${Math.min((stage.value / Math.max(...(funnel.data?.map(s => s.value) || [1]))) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium w-8 text-right">{stage.value}</span>
                 </div>
-                <span className="text-xs font-medium w-6 text-right">{s.count}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </BarChartCard>
+        )}
+
+        {/* Lead Summary */}
+        {leadSummary.isLoading ? (
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <Skeleton className="h-4 w-32 mb-4" />
+            <Skeleton className="h-[200px] w-full" />
           </div>
-        </BarChartCard>
+        ) : leadSummary.isError ? (
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <ErrorState message="Failed to load lead summary" onRetry={() => leadSummary.refetch()} />
+          </div>
+        ) : (
+          <LineChartCard title="Leads by Status" description="Current distribution">
+            <div className="flex flex-col justify-center h-full gap-3 px-2">
+              {leadSummary.data && Object.entries(leadSummary.data)
+                .filter(([key]) => key !== 'total_leads')
+                .map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground w-20 shrink-0 capitalize">{key}</span>
+                    <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded bg-primary/70 transition-all"
+                        style={{ width: `${leadSummary.data.total_leads > 0 ? (Number(value) / leadSummary.data.total_leads) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium w-6 text-right">{value}</span>
+                  </div>
+                ))}
+            </div>
+          </LineChartCard>
+        )}
       </div>
 
-      {/* Activity + Quick Actions */}
+      {/* Quick Actions */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-xl border bg-card shadow-sm">
-          <div className="p-4 border-b">
-            <h3 className="text-sm font-medium">Recent Activity</h3>
-          </div>
-          <div className="p-2">
-            <ActivityTimeline items={recentActivity} />
+        <div className="lg:col-span-2">
+          {/* Recent Leads Table */}
+          <div className="rounded-xl border bg-card shadow-sm">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-sm font-medium">Recent Leads</h3>
+              <Link href="/leads">
+                <Button variant="ghost" size="sm">View all</Button>
+              </Link>
+            </div>
+            <div className="p-4">
+              <DataTable
+                columns={leadsColumns}
+                data={recentLeads.data?.results || []}
+                isLoading={recentLeads.isLoading}
+                emptyMessage="No leads yet"
+              />
+              {recentLeads.isError && (
+                <ErrorState message="Failed to load leads" onRetry={() => recentLeads.refetch()} />
+              )}
+            </div>
           </div>
         </div>
 
@@ -134,21 +185,6 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Recent Leads Table */}
-      <div className="rounded-xl border bg-card shadow-sm">
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Recent Leads</h3>
-            <Button variant="ghost" size="sm">
-              <Link href="/leads">View all</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="p-4">
-          <DataTable columns={leadsColumns} data={recentLeads} />
         </div>
       </div>
     </PageContainer>
