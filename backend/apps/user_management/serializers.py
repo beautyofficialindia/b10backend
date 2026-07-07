@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import UserAuditLog
@@ -19,6 +20,7 @@ class UserListSerializer(serializers.ModelSerializer):
             'date_joined', 'last_login',
         ]
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_groups(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
@@ -31,6 +33,7 @@ class UserDetailSerializer(UserListSerializer):
     class Meta(UserListSerializer.Meta):
         fields = UserListSerializer.Meta.fields + ['permissions']
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_permissions(self, obj):
         return sorted(obj.get_all_permissions())
 
@@ -122,6 +125,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'action', 'description', 'metadata', 'created_at',
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_actor_username(self, obj):
         if obj.actor:
             return obj.actor.username
