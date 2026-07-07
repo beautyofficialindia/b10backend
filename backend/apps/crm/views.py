@@ -39,6 +39,8 @@ class LeadActivityListCreateAPIView(ListCreateAPIView):
     def perform_create(self, serializer):
         lead = get_object_or_404(Lead, id=self.kwargs['id'])
         serializer.save(lead=lead)
+        CRMService.log_activity(lead, 'note_added')
+        CRMService.touch_last_contacted(lead)
 
 class LeadStatusHistoryListAPIView(ListAPIView):
     permission_classes = [IsAdminOrSales]
@@ -58,6 +60,7 @@ class LeadFollowUpListCreateAPIView(ListCreateAPIView):
         lead = get_object_or_404(Lead, id=self.kwargs['id'])
         followup = serializer.save(lead=lead)
         CRMService.log_activity(lead, 'followup_created', f"Follow-up scheduled for {followup.scheduled_at}")
+        CRMService.touch_last_contacted(lead)
 
 class FollowUpDetailAPIView(RetrieveUpdateAPIView):
     permission_classes = [IsAdminOrSales]
@@ -70,3 +73,4 @@ class FollowUpDetailAPIView(RetrieveUpdateAPIView):
         followup = serializer.save()
         if old_status != followup.status and followup.status == 'completed':
             CRMService.log_activity(followup.lead, 'followup_completed', f"Follow-up completed: {followup.notes or ''}")
+            CRMService.touch_last_contacted(followup.lead)

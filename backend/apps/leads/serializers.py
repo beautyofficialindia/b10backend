@@ -13,7 +13,7 @@ class DashboardSummarySerializer(serializers.Serializer):
 class LeadListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lead
-        fields = ['id', 'full_name', 'company_name', 'email', 'industry', 'project_type', 'status', 'created_at']
+        fields = ['id', 'full_name', 'company_name', 'email', 'phone', 'industry', 'project_type', 'status', 'created_at']
 
 class LeadUpdateSerializer(serializers.ModelSerializer):
     class Meta:

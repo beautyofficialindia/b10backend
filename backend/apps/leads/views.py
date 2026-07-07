@@ -11,8 +11,7 @@ from .serializers import (
     LeadUpdateSerializer, 
     DashboardSummarySerializer
 )
-from apps.analytics.services.analytics_service import AnalyticsService
-from apps.crm.services.crm_service import CRMService
+from apps.leads.services.lead_transition_service import LeadTransitionService
 from apps.accounts.permissions import IsAdminUser, IsAdminOrSales, IsAdminSalesOrSupport
 
 class DashboardSummaryAPIView(APIView):
@@ -69,8 +68,10 @@ class LeadDetailAPIView(RetrieveUpdateAPIView):
         old_status = self.get_object().status
         lead = serializer.save()
         if old_status != lead.status:
-            CRMService.log_status_change(lead, old_status, lead.status)
-            if lead.status == 'converted':
-                AnalyticsService.track_lead_converted(lead)
-            elif lead.status == 'lost':
-                AnalyticsService.track_lead_lost(lead)
+            # If manually set to 'qualified' via the API, ensure qualified_at is stamped
+            # (QualificationService does this automatically for chatbot flows).
+            if lead.status == 'qualified' and lead.qualified_at is None:
+                from django.utils import timezone
+                lead.qualified_at = timezone.now()
+                lead.save(update_fields=['qualified_at'])
+            LeadTransitionService.on_status_changed(lead, old_status, lead.status)

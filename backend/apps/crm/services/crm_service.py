@@ -1,4 +1,6 @@
 from ..models import LeadActivity, LeadStatusHistory
+from django.utils import timezone
+
 
 class CRMService:
     @staticmethod
@@ -21,3 +23,14 @@ class CRMService:
             'status_changed', 
             f"Status changed from {old_status} to {new_status}"
         )
+
+    @staticmethod
+    def touch_last_contacted(lead):
+        """
+        Updates last_contacted_at to now. Must only be called for genuine
+        customer-facing or sales interactions (follow-ups, notes, manual outreach).
+        Must NOT be called for internal system notifications or automated bot replies.
+        """
+        lead.last_contacted_at = timezone.now()
+        lead.save(update_fields=['last_contacted_at'])
+

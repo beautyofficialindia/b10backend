@@ -33,7 +33,11 @@ class Lead(models.Model):
     crm_synced_at = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    
+
+    # Qualification & CRM lifecycle timestamps
+    qualified_at = models.DateTimeField(null=True, blank=True)
+    last_contacted_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -6,7 +6,7 @@ from .response_validator import ResponseValidator
 from ..models import ConversationSession, Message
 from apps.leads.services.lead_service import LeadService
 from apps.leads.services.qualification_service import QualificationService
-from apps.leads.services.notification_service import NotificationService
+from apps.leads.services.lead_transition_service import LeadTransitionService
 from apps.analytics.services.analytics_service import AnalyticsService
 from django.utils import timezone
 import uuid
@@ -23,7 +23,6 @@ class ChatService:
         self.response_validator = ResponseValidator()
         self.lead_service = LeadService()
         self.qualification_service = QualificationService()
-        self.notification_service = NotificationService()
 
     def process_message(self, session_id, user_message):
         # 1. Get or create session
@@ -89,23 +88,21 @@ class ChatService:
         if lead_created:
             AnalyticsService.track_lead_created(lead)
 
-        lead_status, missing_fields = self.qualification_service.calculate_status(lead)
+        old_status = lead.status if lead else None
+        lead_status, missing_fields, just_qualified = self.qualification_service.calculate_status(lead)
         self._sync_session_qualification_state(session, lead_status)
-        
+
+        # If the lead just transitioned to qualified, dispatch all downstream side effects
+        # through the single orchestrator. This covers notification, analytics, and CRM logging.
+        if just_qualified:
+            LeadTransitionService.on_status_changed(lead, old_status, 'qualified')
+
         lead_summary = None
         if lead and lead_status == 'qualified':
             lead_summary = (
                 f"Name: {lead.full_name}, Company: {lead.company_name}, Email: {lead.email}, "
                 f"Industry: {lead.industry}, Type: {lead.project_type}"
             )
-            
-            # If it just became qualified
-            if not lead.notification_sent:
-                AnalyticsService.track_lead_qualified(lead)
-                sent = self.notification_service.send_lead_notification(lead)
-                if sent:
-                    lead.notification_sent = True
-                    lead.save(update_fields=['notification_sent'])
 
         if should_escalate:
             self.escalation_service.mark_escalated(session, escalation_reason)
