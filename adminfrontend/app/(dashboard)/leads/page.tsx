@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { PageContainer, PageHeader } from '@/components/layout';
 import { StatusBadge, ErrorState, EmptyState } from '@/components/common';
@@ -9,6 +9,7 @@ import { SkeletonTable } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Inbox, Eye } from 'lucide-react';
 import { useLeads, type Lead, type LeadFilters, type LeadStatus } from '@/features/leads';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const PAGE_SIZE = 20;
 
@@ -103,19 +104,25 @@ const columns: Column<Lead>[] = [
 ];
 
 export default function LeadsPage() {
-  const [filters, setFilters] = useState<LeadFilters>({
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
+  const [filters, setFilters] = useState<Omit<LeadFilters, 'search'>>({
     page: 1,
     page_size: PAGE_SIZE,
     ordering: '-created_at',
-    search: '',
     status: '',
   });
 
-  const { data, isLoading, isError, refetch, isFetching } = useLeads(filters);
+  const queryFilters = useMemo<LeadFilters>(
+    () => ({ ...filters, search: debouncedSearch }),
+    [filters, debouncedSearch]
+  );
+
+  const { data, isLoading, isError, refetch, isFetching } = useLeads(queryFilters);
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0;
 
-  const updateFilter = (update: Partial<LeadFilters>) => {
+  const updateFilter = (update: Partial<Omit<LeadFilters, 'search'>>) => {
     setFilters((prev) => ({ ...prev, ...update, page: update.page ?? 1 }));
   };
 
@@ -137,8 +144,8 @@ export default function LeadsPage() {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <TableToolbar
-          searchValue={filters.search}
-          onSearchChange={(val) => updateFilter({ search: val })}
+          searchValue={search}
+          onSearchChange={(val) => { setSearch(val); setFilters(f => ({ ...f, page: 1 })); }}
           searchPlaceholder="Search leads..."
           className="flex-1"
         >
@@ -175,7 +182,7 @@ export default function LeadsPage() {
         <EmptyState
           icon={Inbox}
           title="No leads found"
-          description={filters.search || filters.status ? 'Try adjusting your filters' : 'Leads will appear here once captured by the chatbot'}
+          description={debouncedSearch || filters.status ? 'Try adjusting your filters' : 'Leads will appear here once captured by the chatbot'}
         />
       ) : data ? (
         <>
