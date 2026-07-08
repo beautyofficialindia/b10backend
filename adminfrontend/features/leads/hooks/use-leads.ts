@@ -31,6 +31,7 @@ export function useUpdateLeadStatus() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['leads', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['crm', 'pipeline'] });
     },
   });
 }
