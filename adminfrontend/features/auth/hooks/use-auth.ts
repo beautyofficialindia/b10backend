@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { authApi } from '../api';
-import type { LoginRequest, User } from '../types';
+import type { LoginRequest, AuthUser } from '../types';
 
 const AUTH_QUERY_KEY = ['auth', 'me'];
 
@@ -27,7 +27,7 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const { data: user, isLoading, isError, isFetched } = useQuery<User>({
+  const { data: user, isLoading, isError, isFetched } = useQuery<AuthUser>({
     queryKey: AUTH_QUERY_KEY,
     queryFn: authApi.getMe,
     retry: false,

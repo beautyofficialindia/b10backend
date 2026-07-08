@@ -14,16 +14,20 @@ export interface RefreshRequest {
 
 export interface RefreshResponse {
   access: string;
+  refresh?: string;
 }
 
-export interface User {
+export interface AuthGroup {
+  id: number;
+  name: string;
+}
+
+export interface AuthUser {
   id: number;
   username: string;
   email: string;
   first_name: string;
   last_name: string;
-  is_active: boolean;
-  is_staff: boolean;
-  is_superuser: boolean;
-  groups: string[];
+  role: string | null;
+  groups: AuthGroup[];
 }
