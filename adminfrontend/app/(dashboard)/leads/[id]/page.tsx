@@ -3,21 +3,13 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout';
-import { StatusBadge, ErrorState } from '@/components/common';
+import { StatusBadge, ErrorState, CopyButton } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ArrowLeft, Mail, Phone, Building2, Clock, Target, Briefcase, DollarSign, FileText, MessageSquare } from 'lucide-react';
 import { useLeadDetail, useUpdateLeadStatus, type LeadStatus } from '@/features/leads';
-
-function getStatusVariant(status: string): 'active' | 'inactive' | 'pending' | 'error' {
-  switch (status) {
-    case 'qualified': case 'converted': return 'active';
-    case 'lost': case 'disqualified': return 'error';
-    case 'escalated': return 'pending';
-    default: return 'inactive';
-  }
-}
+import { getStatusVariant } from '@/features/leads/utils';
 
 const statusActions: { value: LeadStatus; label: string }[] = [
   { value: 'gathering', label: 'Gathering' },
@@ -27,14 +19,32 @@ const statusActions: { value: LeadStatus; label: string }[] = [
   { value: 'lost', label: 'Lost' },
 ];
 
-function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
+function InfoRow({ icon: Icon, label, value, copyable }: { icon: React.ElementType; label: string; value: string | null | undefined; copyable?: boolean }) {
   if (!value) return null;
   return (
     <div className="flex items-start gap-3 py-2.5">
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div className="min-w-0">
+      <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium break-words">{value}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-sm font-medium break-words">{value}</p>
+          {copyable && <CopyButton value={value} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreBar({ score }: { score: number }) {
+  const color = score >= 70 ? 'bg-emerald-500' : score >= 40 ? 'bg-amber-500' : 'bg-red-400';
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">Lead Score</span>
+        <span className="font-semibold">{score}/100</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${score}%` }} />
       </div>
     </div>
   );
@@ -49,11 +59,21 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   if (isLoading) {
     return (
       <PageContainer>
-        <Skeleton className="h-8 w-48 mb-6" />
+        <Skeleton className="h-6 w-32 mb-4" />
         <div className="rounded-xl border bg-card p-6 space-y-4">
-          <Skeleton className="h-6 w-64" />
+          <Skeleton className="h-7 w-64" />
           <Skeleton className="h-4 w-48" />
           <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3 mt-6">
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
         </div>
       </PageContainer>
     );
@@ -79,7 +99,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       <div className="rounded-xl border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-xl font-semibold truncate">
                 {lead.full_name || 'Anonymous Lead'}
               </h1>
@@ -87,10 +107,16 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
               {lead.email && (
-                <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{lead.email}</span>
+                <span className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />{lead.email}
+                  <CopyButton value={lead.email} />
+                </span>
               )}
               {lead.phone && (
-                <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{lead.phone}</span>
+                <span className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" />{lead.phone}
+                  <CopyButton value={lead.phone} />
+                </span>
               )}
               {lead.company_name && (
                 <span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />{lead.company_name}</span>
@@ -98,12 +124,14 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
 
-          {/* Score */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-center">
-              <p className="text-2xl font-bold">{lead.lead_score}</p>
-              <p className="text-xs text-muted-foreground">Score</p>
+          {/* Score circle */}
+          <div className="shrink-0 w-16 text-center">
+            <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white text-sm font-bold ${
+              lead.lead_score >= 70 ? 'bg-emerald-500' : lead.lead_score >= 40 ? 'bg-amber-500' : 'bg-red-400'
+            }`}>
+              {lead.lead_score}
             </div>
+            <p className="text-[10px] text-muted-foreground mt-1">Score</p>
           </div>
         </div>
       </div>
@@ -115,9 +143,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           <Tabs defaultValue="overview">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="conversation">Conversation</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="conversation">Conversation</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-4 space-y-4">
@@ -138,7 +166,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               {lead.requirements && (
                 <div className="rounded-lg border p-4">
                   <h3 className="text-sm font-medium mb-2">Requirements</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{lead.requirements}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{lead.requirements}</p>
                 </div>
               )}
 
@@ -146,27 +174,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               <div className="rounded-lg border p-4">
                 <h3 className="text-sm font-medium mb-2">Contact Information</h3>
                 <div className="grid sm:grid-cols-2 gap-x-6">
-                  <InfoRow icon={Mail} label="Email" value={lead.email} />
-                  <InfoRow icon={Phone} label="Phone" value={lead.phone} />
+                  <InfoRow icon={Mail} label="Email" value={lead.email} copyable />
+                  <InfoRow icon={Phone} label="Phone" value={lead.phone} copyable />
                   <InfoRow icon={Building2} label="Company" value={lead.company_name} />
                   <InfoRow icon={Target} label="Source" value={lead.source} />
                 </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="activity" className="mt-4">
-              <div className="rounded-lg border p-8 text-center">
-                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">Activity Timeline</p>
-                <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="notes" className="mt-4">
-              <div className="rounded-lg border p-8 text-center">
-                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">Notes</p>
-                <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
               </div>
             </TabsContent>
 
@@ -192,6 +204,22 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   <p className="text-xs text-muted-foreground mt-1">No chat history available</p>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="activity" className="mt-4">
+              <div className="rounded-lg border p-8 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">Activity Timeline</p>
+                <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notes" className="mt-4">
+              <div className="rounded-lg border p-8 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">Notes</p>
+                <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
@@ -221,14 +249,15 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
 
+          {/* Score */}
+          <div className="rounded-lg border p-4">
+            <ScoreBar score={lead.lead_score} />
+          </div>
+
           {/* Meta */}
           <div className="rounded-lg border p-4 space-y-3">
             <h3 className="text-sm font-medium">Details</h3>
             <div className="space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Score</span>
-                <span className="font-medium">{lead.lead_score}/100</span>
-              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Source</span>
                 <span className="font-medium capitalize">{lead.source}</span>
@@ -247,21 +276,27 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   <span className="font-medium">{new Date(lead.qualified_at).toLocaleDateString()}</span>
                 </div>
               )}
+              {lead.last_contacted_at && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Last Contact</span>
+                  <span className="font-medium">{new Date(lead.last_contacted_at).toLocaleDateString()}</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Actions */}
           <div className="rounded-lg border p-4 space-y-2">
-            <h3 className="text-sm font-medium mb-2">Actions</h3>
+            <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
             {lead.email && (
-              <a href={`mailto:${lead.email}`} className="w-full">
+              <a href={`mailto:${lead.email}`} className="block">
                 <Button variant="outline" size="sm" className="w-full justify-start gap-2">
                   <Mail className="h-3.5 w-3.5" />Send Email
                 </Button>
               </a>
             )}
             {lead.phone && (
-              <a href={`tel:${lead.phone}`} className="w-full">
+              <a href={`tel:${lead.phone}`} className="block">
                 <Button variant="outline" size="sm" className="w-full justify-start gap-2">
                   <Phone className="h-3.5 w-3.5" />Call
                 </Button>

@@ -9,39 +9,10 @@ import { SkeletonTable } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Inbox, Eye } from 'lucide-react';
 import { useLeads, type Lead, type LeadFilters, type LeadStatus } from '@/features/leads';
+import { getStatusVariant, statusOptions, sortOptions } from '@/features/leads/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 
 const PAGE_SIZE = 20;
-
-const statusOptions: { value: LeadStatus | ''; label: string }[] = [
-  { value: '', label: 'All Statuses' },
-  { value: 'gathering', label: 'Gathering' },
-  { value: 'qualified', label: 'Qualified' },
-  { value: 'converted', label: 'Converted' },
-  { value: 'escalated', label: 'Escalated' },
-  { value: 'lost', label: 'Lost' },
-];
-
-const sortOptions = [
-  { value: '-created_at', label: 'Newest first' },
-  { value: 'created_at', label: 'Oldest first' },
-  { value: '-updated_at', label: 'Recently updated' },
-];
-
-function getStatusVariant(status: string): 'active' | 'inactive' | 'pending' | 'error' {
-  switch (status) {
-    case 'qualified':
-    case 'converted':
-      return 'active';
-    case 'lost':
-    case 'disqualified':
-      return 'error';
-    case 'escalated':
-      return 'pending';
-    default:
-      return 'inactive';
-  }
-}
 
 const columns: Column<Lead>[] = [
   {
@@ -172,6 +143,13 @@ export default function LeadsPage() {
           </select>
         </TableToolbar>
       </div>
+
+      {/* Result count */}
+      {data && data.count > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {data.count} lead{data.count !== 1 ? 's' : ''} found
+        </p>
+      )}
 
       {/* Table */}
       {isLoading ? (
