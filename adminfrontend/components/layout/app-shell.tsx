@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
-import { motion } from 'framer-motion';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -17,15 +15,20 @@ export function AppShell({ children }: AppShellProps) {
     <div className="relative flex min-h-screen">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
 
-      <motion.div
-        initial={false}
-        animate={{ marginLeft: collapsed ? 64 : 256 }}
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className={cn('flex flex-1 flex-col', 'lg:ml-0', 'ml-0')}
+      <div
+        className="flex flex-1 flex-col transition-[margin-left] duration-200 ease-in-out lg:ml-64"
+        style={{ marginLeft: undefined }}
+        data-collapsed={collapsed}
       >
+        <style>{`
+          @media (min-width: 1024px) {
+            [data-collapsed="true"] { margin-left: 64px !important; }
+            [data-collapsed="false"] { margin-left: 256px !important; }
+          }
+        `}</style>
         <Header />
         <main className="flex-1">{children}</main>
-      </motion.div>
+      </div>
     </div>
   );
 }
