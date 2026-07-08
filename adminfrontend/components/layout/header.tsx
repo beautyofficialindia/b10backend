@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -50,18 +51,18 @@ export function Header() {
 
         {/* User menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
-              </Avatar>
-            </Button>
+          <DropdownMenuTrigger className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-accent transition-colors">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+            </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel className="font-normal">
-              <p className="text-sm font-medium">{user?.first_name || user?.username}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium">{user?.first_name || user?.username}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>

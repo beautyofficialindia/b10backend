@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { navigation } from '@/constants/navigation';
 import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
@@ -16,11 +15,9 @@ export function MobileSidebar() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger>
-        <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Open menu</span>
-        </Button>
+      <SheetTrigger className="lg:hidden inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors">
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Open menu</span>
       </SheetTrigger>
       <SheetContent side="left" className="w-64 p-0">
         <div className="flex h-14 items-center border-b px-4">
