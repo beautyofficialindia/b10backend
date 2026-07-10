@@ -11,6 +11,7 @@ import { RefreshCw, Inbox, Eye } from 'lucide-react';
 import { useLeads, type Lead, type LeadFilters, type LeadStatus } from '@/features/leads';
 import { getStatusVariant, statusOptions, sortOptions } from '@/features/leads/utils';
 import { useDebounce } from '@/hooks/use-debounce';
+import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 
 const PAGE_SIZE = 20;
 
@@ -85,7 +86,7 @@ export default function LeadsPage() {
   });
 
   const queryFilters = useMemo<LeadFilters>(
-    () => ({ ...filters, search: debouncedSearch }),
+    () => ({ ...filters, search: debouncedSearch.length >= MIN_SEARCH_LENGTH ? debouncedSearch : '' }),
     [filters, debouncedSearch]
   );
 

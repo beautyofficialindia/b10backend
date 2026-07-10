@@ -1,16 +1,13 @@
 import api from '@/lib/axios';
+import { buildQueryParams } from '@/lib/utils/build-query-params';
 import type { Role, RoleDetail, Permission, RoleUser, RoleFilters } from '../types';
 
 interface PaginatedResponse<T> { success: boolean; data: T[]; meta: { pagination: { page: number; page_size: number; total_count: number; total_pages: number } } }
 
 export const rolesApi = {
-  list: async (filters: RoleFilters = {}): Promise<PaginatedResponse<Role>> => {
-    const params = new URLSearchParams();
-    if (filters.search) params.set('search', filters.search);
-    if (filters.ordering) params.set('ordering', filters.ordering);
-    if (filters.page) params.set('page', String(filters.page));
-    if (filters.page_size) params.set('page_size', String(filters.page_size));
-    const res = await api.get(`/admin/roles/?${params.toString()}`);
+  list: async (filters: RoleFilters = {}, signal?: AbortSignal): Promise<PaginatedResponse<Role>> => {
+    const params = buildQueryParams(filters);
+    const res = await api.get(`/admin/roles/?${params.toString()}`, { signal });
     return res.data;
   },
 
@@ -43,9 +40,10 @@ export const rolesApi = {
     return res.data;
   },
 
-  getRoleUsers: async (id: number, search?: string): Promise<PaginatedResponse<RoleUser>> => {
-    const params = search ? `?search=${search}` : '';
-    const res = await api.get(`/admin/roles/${id}/users/${params}`);
+  getRoleUsers: async (id: number, search?: string, signal?: AbortSignal): Promise<PaginatedResponse<RoleUser>> => {
+    const params = buildQueryParams({ search });
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const res = await api.get(`/admin/roles/${id}/users/${queryString}`, { signal });
     return res.data;
   },
 

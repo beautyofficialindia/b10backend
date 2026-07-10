@@ -18,11 +18,13 @@ import {
 } from '@/features/crm';
 import type { Lead, LeadStatus } from '@/features/leads/types';
 import { useDebounce } from '@/hooks/use-debounce';
+import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 
 export default function CRMPage() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const { data: leads, isLoading, isError, refetch, isFetching } = usePipelineLeads(debouncedSearch || undefined);
+  const effectiveSearch = debouncedSearch.length >= MIN_SEARCH_LENGTH ? debouncedSearch : '';
+  const { data: leads, isLoading, isError, refetch, isFetching } = usePipelineLeads(effectiveSearch || undefined);
   const moveStatus = useMoveLeadStatus();
   const [activeCard, setActiveCard] = useState<Lead | null>(null);
 

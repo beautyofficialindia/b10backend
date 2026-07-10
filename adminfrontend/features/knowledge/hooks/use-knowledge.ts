@@ -7,7 +7,7 @@ import type { KBFilters, KBCreatePayload } from '../types';
 export function useKnowledgeList(filters: KBFilters) {
   return useQuery({
     queryKey: ['knowledge', filters],
-    queryFn: () => knowledgeApi.list(filters),
+    queryFn: ({ signal }) => knowledgeApi.list(filters, signal),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
     retry: 1,

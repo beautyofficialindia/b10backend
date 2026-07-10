@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { RefreshCw, Users, Plus, Eye, Shield } from 'lucide-react';
 import { useUsersList, useBulkActivate, useBulkDeactivate, type User, type UserFilters } from '@/features/users';
 import { useDebounce } from '@/hooks/use-debounce';
+import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 
 const PAGE_SIZE = 20;
 
@@ -52,7 +53,7 @@ export default function UsersPage() {
   });
   const [selected, setSelected] = useState<number[]>([]);
 
-  const queryFilters = useMemo<UserFilters>(() => ({ ...filters, search: debouncedSearch }), [filters, debouncedSearch]);
+  const queryFilters = useMemo<UserFilters>(() => ({ ...filters, search: debouncedSearch.length >= MIN_SEARCH_LENGTH ? debouncedSearch : '' }), [filters, debouncedSearch]);
   const { data, isLoading, isError, refetch, isFetching } = useUsersList(queryFilters);
   const bulkActivate = useBulkActivate();
   const bulkDeactivate = useBulkDeactivate();

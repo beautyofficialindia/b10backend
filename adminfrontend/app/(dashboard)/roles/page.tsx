@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Shield, Plus, Eye } from 'lucide-react';
 import { useRolesList, useDeleteRole, type Role, type RoleFilters } from '@/features/roles';
 import { useDebounce } from '@/hooks/use-debounce';
+import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 
 const PAGE_SIZE = 20;
 
@@ -32,7 +33,7 @@ export default function RolesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
   const deleteMutation = useDeleteRole();
 
-  const queryFilters = useMemo<RoleFilters>(() => ({ ...filters, search: debouncedSearch }), [filters, debouncedSearch]);
+  const queryFilters = useMemo<RoleFilters>(() => ({ ...filters, search: debouncedSearch.length >= MIN_SEARCH_LENGTH ? debouncedSearch : '' }), [filters, debouncedSearch]);
   const { data, isLoading, isError, refetch, isFetching } = useRolesList(queryFilters);
   const roles = data?.data || [];
   const totalCount = data?.meta?.pagination?.total_count || 0;

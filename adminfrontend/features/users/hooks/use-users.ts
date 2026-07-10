@@ -7,7 +7,7 @@ import type { UserFilters, UserCreatePayload, UserUpdatePayload } from '../types
 export function useUsersList(filters: UserFilters) {
   return useQuery({
     queryKey: ['users', filters],
-    queryFn: () => usersApi.list(filters),
+    queryFn: ({ signal }) => usersApi.list(filters, signal),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
     retry: 1,

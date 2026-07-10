@@ -31,12 +31,14 @@ export default function AnalyticsPage() {
     <PageContainer>
       <PageHeader title="Analytics" description="Platform performance metrics and insights">
         <Tooltip>
-          <TooltipTrigger>
-            <Button variant="outline" size="sm" disabled className="gap-1.5">
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </Button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <Button variant="outline" size="sm" disabled className="gap-1.5">
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
+            }
+          />
           <TooltipContent>Available when backend export API is implemented</TooltipContent>
         </Tooltip>
         <Button

@@ -10,7 +10,7 @@ Status: Active Development
 Domain-specific AI business consultant for B10 IT Solution website.
 
 ## Current Deliverable
-Chatbot MVP
+Phase 6: Admin Dashboard React Frontend
 
 ## Tech Stack
 
@@ -45,10 +45,5 @@ Modular Monolith
 - services
 - analytics
 - administration
-
-## Out of Scope (MVP)
-- Authentication
-- Admin Dashboard
-- CRM Integrations
-- Email Services
-- Analytics Dashboard
+- accounts
+- crm

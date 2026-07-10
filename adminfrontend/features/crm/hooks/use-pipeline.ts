@@ -9,9 +9,9 @@ import { PIPELINE_COLUMNS } from '../types';
 export function usePipelineLeads(search?: string) {
   return useQuery({
     queryKey: ['crm', 'pipeline', search],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       // Fetch all leads (no status filter, larger page for pipeline view)
-      const res = await leadsApi.list({ page_size: 100, search: search || undefined });
+      const res = await leadsApi.list({ page_size: 100, search: search || undefined }, signal);
       return res.results;
     },
     staleTime: 30 * 1000,

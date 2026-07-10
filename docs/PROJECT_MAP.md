@@ -1,6 +1,11 @@
 # PROJECT_MAP.md
 
 b10backend/
+├── adminfrontend/
+│   ├── app/ (Next.js App Router)
+│   ├── features/ (Feature-sliced components/hooks/api)
+│   ├── components/ (Shared UI components)
+│   └── lib/ (Axios, utilities)
 ├── backend/
 │   ├── core/
 │   │   ├── settings.py
@@ -19,6 +24,7 @@ b10backend/
 │   ├── industries.json
 │   └── faq.json
 ├── docs/ (System Architecture, API Specs, Deployment Guides)
+│   └── archive/ (Historical audits and old implementation reports)
 ├── requirements.txt (Strict pinned dependencies)
 ├── .env (Local environment variables)
 └── .env.example (Environment template)

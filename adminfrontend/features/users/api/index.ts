@@ -1,17 +1,11 @@
 import api from '@/lib/axios';
+import { buildQueryParams } from '@/lib/utils/build-query-params';
 import type { UserListResponse, UserFilters, UserDetail, UserCreatePayload, UserUpdatePayload, AuditLogEntry, BulkResult } from '../types';
 
 export const usersApi = {
-  list: async (filters: UserFilters = {}): Promise<UserListResponse> => {
-    const params = new URLSearchParams();
-    if (filters.search) params.set('search', filters.search);
-    if (filters.is_active) params.set('is_active', filters.is_active);
-    if (filters.is_superuser) params.set('is_superuser', filters.is_superuser);
-    if (filters.group) params.set('group', filters.group);
-    if (filters.ordering) params.set('ordering', filters.ordering);
-    if (filters.page) params.set('page', String(filters.page));
-    if (filters.page_size) params.set('page_size', String(filters.page_size));
-    const res = await api.get(`/admin/users/?${params.toString()}`);
+  list: async (filters: UserFilters = {}, signal?: AbortSignal): Promise<UserListResponse> => {
+    const params = buildQueryParams(filters);
+    const res = await api.get(`/admin/users/?${params.toString()}`, { signal });
     return res.data;
   },
 

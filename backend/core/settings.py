@@ -32,6 +32,7 @@ CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -196,3 +197,26 @@ LOGGING = {
 
 # Knowledge Base source: 'json' (Phase 1, default) or 'database' (Phase 2, future)
 KNOWLEDGE_BASE_SOURCE = env.str('KNOWLEDGE_BASE_SOURCE', default='json')
+
+JAZZMIN_SETTINGS = {
+    "site_title": "B10 Admin",
+    "site_header": "B10 IT Solution",
+    "site_brand": "B10",
+    "welcome_sign": "Welcome to B10 IT Solution Admin",
+    "copyright": "B10 IT Solution",
+
+    "show_sidebar": True,
+    "navigation_expanded": True,
+
+    "search_model": "auth.User",
+
+    "order_with_respect_to": [
+        "auth",
+        "leads",
+        "knowledge_base",
+        "crm",
+        "analytics",
+        "settings_management",
+        "user_management",
+    ],
+}

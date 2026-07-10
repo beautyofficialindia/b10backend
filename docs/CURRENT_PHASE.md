@@ -1,6 +1,6 @@
 # CURRENT_PHASE.md
 
-Phase: Phase 8 - Production Hardening & Environment Audit (Completed)
+Phase: Phase 6 - Admin Dashboard React Frontend Implementation
 
 Completed Phases:
 - Phase 1: Chatbot MVP
@@ -8,14 +8,12 @@ Completed Phases:
 - Phase 3: Email Notifications (Console Backend)
 - Phase 4: Admin Dashboard APIs
 - Phase 5: Analytics Tracking (Timeline & Funnel)
-- Phase 6A: Internal CRM (Activities & Follow-ups)
-- Phase 7: Authentication & Authorization (SimpleJWT + Django Groups)
-- Phase 8: Production Hardening (CORS, Env, WhiteNoise, Logging, DRF-Spectacular swagger docs, tests)
+- Pre-Phase 6: Repository Cleanup & Documentation Refresh (Completed)
 
-Next (Phase 9):
+Next (Phase 6):
 - Admin Dashboard React Frontend implementation.
 
-Definition of Done (Phase 8):
+Definition of Done (Phase 6):
 - [x] Environment strictly defined in `requirements.txt`
 - [x] Secrets decoupled via `.env` and `django-environ`
 - [x] Production static files via WhiteNoise

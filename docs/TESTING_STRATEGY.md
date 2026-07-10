@@ -238,8 +238,13 @@ Validate:
 
 ## Framework
 
+Backend:
 pytest
 pytest-django
+
+Frontend:
+Vitest (Unit/Components)
+Playwright (End-to-End)
 
 ---
 
@@ -403,7 +408,12 @@ Tests:
 
 ## Objectives
 
-Validate complete user journeys.
+Validate complete user journeys using **Playwright**.
+
+## E2E Status
+
+- Current implementation: Under construction (Phase 6 setup)
+- E2E artifacts: stored in `playwright-report/` and `test-results/` (Ignored in VCS)
 
 ---
 
@@ -827,9 +837,11 @@ Verify:
 
 Backend:
 pytest
-
-Django:
 pytest-django
+
+Frontend:
+Vitest
+Playwright (E2E)
 
 Factories:
 factory-boy

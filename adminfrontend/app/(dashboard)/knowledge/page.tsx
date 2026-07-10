@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, BookOpen, Plus, Eye, Trash2 } from 'lucide-react';
 import { useKnowledgeList, useDeleteEntry, type KnowledgeEntry, type KBFilters, type KBCategory, type KBStatus } from '@/features/knowledge';
 import { useDebounce } from '@/hooks/use-debounce';
+import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 
 const PAGE_SIZE = 20;
 
@@ -50,7 +51,7 @@ export default function KnowledgePage() {
   const deleteMutation = useDeleteEntry();
 
   const queryFilters = useMemo<KBFilters>(
-    () => ({ ...filters, search: debouncedSearch }),
+    () => ({ ...filters, search: debouncedSearch.length >= MIN_SEARCH_LENGTH ? debouncedSearch : '' }),
     [filters, debouncedSearch]
   );
 

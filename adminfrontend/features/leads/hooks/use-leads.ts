@@ -7,7 +7,7 @@ import type { LeadFilters } from '../types';
 export function useLeads(filters: LeadFilters) {
   return useQuery({
     queryKey: ['leads', filters],
-    queryFn: () => leadsApi.list(filters),
+    queryFn: ({ signal }) => leadsApi.list(filters, signal),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
     retry: 1,

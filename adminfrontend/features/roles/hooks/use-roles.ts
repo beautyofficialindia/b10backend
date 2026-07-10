@@ -7,7 +7,7 @@ import type { RoleFilters } from '../types';
 export function useRolesList(filters: RoleFilters) {
   return useQuery({
     queryKey: ['roles', filters],
-    queryFn: () => rolesApi.list(filters),
+    queryFn: ({ signal }) => rolesApi.list(filters, signal),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
     retry: 1,
@@ -34,7 +34,7 @@ export function useAvailablePermissions() {
 export function useRoleUsers(id: number, search?: string) {
   return useQuery({
     queryKey: ['roles', id, 'users', search],
-    queryFn: () => rolesApi.getRoleUsers(id, search),
+    queryFn: ({ signal }) => rolesApi.getRoleUsers(id, search, signal),
     staleTime: 30 * 1000,
     enabled: !!id,
   });

@@ -27,3 +27,38 @@ staticfiles/
 Thumbs.db
 *.swp
 *~
+
+# Testing & E2E Generated Artifacts
+.pytest_cache/
+coverage/
+playwright-report/
+test-results/
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+
+# Additional Environments
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# Additional Python Caches & Typing
+*.pyo
+*.pyd
+.pytype/
+.mypy_cache/
+.pyre/
+.pyre_configuration.local
+
+# Databases
+*.sqlite3
+
+# Misc
+.cache/
+tmp/
+temp/
