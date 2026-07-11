@@ -8,8 +8,12 @@ from drf_spectacular.utils import extend_schema, OpenApiExample
 from .serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
     LogoutRequestSerializer, RefreshRequestSerializer,
-    LoginResponseSerializer, TokenResponseSerializer
+    LoginResponseSerializer, TokenResponseSerializer,
+    ChangePasswordSerializer, ChangePasswordResponseSerializer
 )
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from apps.user_management.services.user_service import UserService
 
 class LoginAPIView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -75,3 +79,86 @@ class RefreshAPIView(TokenRefreshView):
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
+
+class ChangePasswordAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses={200: ChangePasswordResponseSerializer},
+        examples=[
+            OpenApiExample(
+                'Request',
+                value={
+                    "old_password": "OldPassword123!",
+                    "new_password": "NewPassword123!"
+                },
+                request_only=True
+            ),
+            OpenApiExample(
+                'Success',
+                value={
+                    "success": True,
+                    "message": "Password changed successfully."
+                },
+                response_only=True,
+                status_codes=[str(status.HTTP_200_OK)]
+            ),
+            OpenApiExample(
+                'Wrong Password',
+                value={
+                    "old_password": [
+                        "Old password is incorrect."
+                    ]
+                },
+                response_only=True,
+                status_codes=[str(status.HTTP_400_BAD_REQUEST)]
+            )
+        ]
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+        user = request.user
+
+        if not user.check_password(old_password):
+            return Response(
+                {"old_password": ["Old password is incorrect."]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if old_password == new_password:
+            return Response(
+                {"new_password": ["New password must be different from old password."]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as e:
+            return Response(
+                {"new_password": list(e.messages)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        try:
+            UserService.create_audit_log(
+                actor=user,
+                target_user=user,
+                action='password_changed',
+                description=f"User '{user.username}' changed their own password."
+            )
+        except Exception:
+            pass
+
+        return Response(
+            {"success": True, "message": "Password changed successfully."},
+            status=status.HTTP_200_OK
+        )

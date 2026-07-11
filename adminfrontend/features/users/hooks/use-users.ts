@@ -1,6 +1,8 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { AxiosError } from 'axios';
 import { usersApi } from '../api';
 import type { UserFilters, UserCreatePayload, UserUpdatePayload } from '../types';
 
@@ -39,7 +41,12 @@ export function useUpdateUser() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['users', vars.id] });
       qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User updated successfully');
     },
+    onError: (error) => {
+      const msg = error instanceof AxiosError ? error.response?.data?.message : null;
+      toast.error(msg || 'Failed to update user');
+    }
   });
 }
 

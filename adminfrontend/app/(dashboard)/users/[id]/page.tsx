@@ -3,13 +3,13 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout';
-import { StatusBadge, RoleBadge, ErrorState, CopyButton, ConfirmDialog } from '@/components/common';
+import { StatusBadge, RoleBadge, ErrorState, CopyButton } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ArrowLeft, Edit, Shield, Mail, Key, UserCheck, UserX, Clock } from 'lucide-react';
-import { useUserDetail, useActivateUser, useDeactivateUser, useResetPassword, useUserAuditLog } from '@/features/users';
+import { useUserDetail, useActivateUser, useDeactivateUser, useResetPassword, useUserAuditLog, ResetPasswordDialog } from '@/features/users';
 
 export default function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -22,7 +22,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const auditLog = useUserAuditLog(userId);
 
   const [resetOpen, setResetOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
 
   const user = data?.data;
 
@@ -145,18 +144,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       </Tabs>
 
       {/* Reset Password Dialog */}
-      <ConfirmDialog
+      <ResetPasswordDialog
         open={resetOpen}
         onOpenChange={setResetOpen}
-        title="Reset Password"
-        description="Enter a new password for this user."
-        confirmLabel="Reset"
-        isLoading={resetPwMutation.isPending}
-        onConfirm={() => {
-          if (newPassword.length >= 8) {
-            resetPwMutation.mutate({ id: userId, password: newPassword }, { onSuccess: () => { setResetOpen(false); setNewPassword(''); } });
-          }
-        }}
+        userId={userId}
       />
     </PageContainer>
   );

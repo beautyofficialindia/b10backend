@@ -489,6 +489,23 @@ class UserService:
             .order_by('-created_at')
         )
 
+    @staticmethod
+    def create_audit_log(
+        actor: User,
+        target_user: User,
+        action: str,
+        description: str,
+        metadata: dict | None = None,
+    ) -> None:
+        """Public wrapper to create a UserAuditLog record safely."""
+        UserService._create_audit_log(
+            actor=actor,
+            target_user=target_user,
+            action=action,
+            description=description,
+            metadata=metadata,
+        )
+
     # ─── Internal helpers ──────────────────────────────────────────────
 
     @staticmethod
