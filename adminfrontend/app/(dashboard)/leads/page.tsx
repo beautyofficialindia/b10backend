@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { PageContainer, PageHeader } from '@/components/layout';
+import { PermissionGuard } from '@/features/auth';
 import { StatusBadge, ErrorState, EmptyState } from '@/components/common';
 import { DataTable, TableToolbar, TablePagination, type Column } from '@/components/tables';
 import { SkeletonTable } from '@/components/common';
@@ -99,6 +100,7 @@ export default function LeadsPage() {
   };
 
   return (
+    <PermissionGuard permissions={['leads.view_lead']}>
     <PageContainer>
       <PageHeader title="Leads" description="Manage captured leads from chatbot conversations">
         <Button
@@ -178,5 +180,6 @@ export default function LeadsPage() {
         </>
       ) : null}
     </PageContainer>
+    </PermissionGuard>
   );
 }

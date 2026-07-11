@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageContainer, PageHeader } from '@/components/layout';
+import { PermissionGuard } from '@/features/auth';
 import { StatusBadge, ErrorState, EmptyState, SkeletonTable, DeleteDialog } from '@/components/common';
 import { DataTable, TableToolbar, TablePagination, type Column } from '@/components/tables';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,7 @@ export default function KnowledgePage() {
   ];
 
   return (
+    <PermissionGuard permissions={['knowledge_base.view_kbentry']}>
     <PageContainer>
       <PageHeader title="Knowledge Base" description="Manage content that powers the chatbot">
         <Button size="sm" onClick={() => router.push('/knowledge/new')} className="gap-1.5">
@@ -129,5 +131,6 @@ export default function KnowledgePage() {
 
       <DeleteDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)} itemName={deleteTarget?.title} isLoading={deleteMutation.isPending} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) }); }} />
     </PageContainer>
+    </PermissionGuard>
   );
 }

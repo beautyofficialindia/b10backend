@@ -10,14 +10,18 @@ class GroupSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     groups = GroupSerializer(many=True, read_only=True)
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'groups']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'groups', 'permissions', 'is_superuser', 'is_staff']
 
     def get_role(self, obj):
         group = obj.groups.first()
         return group.name if group else None
+
+    def get_permissions(self, obj):
+        return sorted(list(obj.get_all_permissions()))
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):

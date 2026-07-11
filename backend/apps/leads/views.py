@@ -34,7 +34,7 @@ class LeadPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
 
 class LeadListAPIView(ListAPIView):
-    permission_classes = [IsAdminOrSales]
+    permission_classes = [IsAdminSalesOrSupport]
     queryset = Lead.objects.all()
     serializer_class = LeadListSerializer
     pagination_class = LeadPagination

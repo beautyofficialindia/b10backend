@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageContainer, PageHeader } from '@/components/layout';
+import { PermissionGuard } from '@/features/auth';
 import { ErrorState, EmptyState, SkeletonTable, DeleteDialog } from '@/components/common';
 import { DataTable, TableToolbar, TablePagination, type Column } from '@/components/tables';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ export default function RolesPage() {
   const totalPages = data?.meta?.pagination?.total_pages || 0;
 
   return (
+    <PermissionGuard permissions={['auth.view_group']}>
     <PageContainer>
       <PageHeader title="Roles" description="Manage roles and permissions">
         <Button size="sm" onClick={() => router.push('/roles/new')} className="gap-1.5"><Plus className="h-3.5 w-3.5" />New Role</Button>
@@ -65,5 +67,6 @@ export default function RolesPage() {
 
       <DeleteDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)} itemName={deleteTarget?.name} isLoading={deleteMutation.isPending} onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) }); }} />
     </PageContainer>
+    </PermissionGuard>
   );
 }

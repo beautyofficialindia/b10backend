@@ -1,5 +1,7 @@
 'use client';
 
+import { PermissionGuard } from '@/features/auth';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -75,26 +77,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
             if (collapsed) {
               return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger render={<Link href={item.href} className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/70',
-                    'justify-center px-2'
-                  )} />}>
-                    <Icon className="h-4.5 w-4.5 shrink-0" />
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>
-                    {item.title}
-                  </TooltipContent>
-                </Tooltip>
+                <PermissionGuard key={item.href} permissions={item.permissions}>
+                  <Tooltip>
+                    <TooltipTrigger render={linkContent} />
+                    <TooltipContent side="right" sideOffset={8}>
+                      {item.title}
+                    </TooltipContent>
+                  </Tooltip>
+                </PermissionGuard>
               );
             }
 
-            return <div key={item.href}>{linkContent}</div>;
+            return (
+              <PermissionGuard key={item.href} permissions={item.permissions}>
+                <div>{linkContent}</div>
+              </PermissionGuard>
+            );
           })}
         </nav>
       </ScrollArea>

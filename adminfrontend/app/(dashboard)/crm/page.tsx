@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { DndContext, DragOverlay, closestCenter, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { PageContainer, PageHeader } from '@/components/layout';
+import { PermissionGuard } from '@/features/auth';
 import { ErrorState } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ export default function CRMPage() {
   };
 
   return (
+    <PermissionGuard permissions={['crm.view_leadactivity']}>
     <PageContainer className="!space-y-4">
       <PageHeader title="CRM Pipeline" description="Drag leads between stages to update their status">
         <Button
@@ -113,5 +115,6 @@ export default function CRMPage() {
         </DndContext>
       ) : null}
     </PageContainer>
+    </PermissionGuard>
   );
 }

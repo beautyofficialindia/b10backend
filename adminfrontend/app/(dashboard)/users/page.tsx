@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageContainer, PageHeader } from '@/components/layout';
+import { PermissionGuard } from '@/features/auth';
 import { StatusBadge, RoleBadge, ErrorState, EmptyState, SkeletonTable } from '@/components/common';
 import { DataTable, TableToolbar, TablePagination, type Column } from '@/components/tables';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ export default function UsersPage() {
   };
 
   return (
+    <PermissionGuard permissions={['auth.view_user']}>
     <PageContainer>
       <PageHeader title="Users" description="Manage admin and staff accounts">
         <Button size="sm" onClick={() => router.push('/users/new')} className="gap-1.5"><Plus className="h-3.5 w-3.5" />New User</Button>
@@ -113,5 +115,6 @@ export default function UsersPage() {
         </>
       )}
     </PageContainer>
+    </PermissionGuard>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PageContainer, PageHeader } from '@/components/layout';
+import { PermissionGuard } from '@/features/auth';
 import { ErrorState } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -151,6 +152,7 @@ function CategoryPanel({ category }: { category: SettingCategory }) {
 
 export default function SettingsPage() {
   return (
+    <PermissionGuard permissions={['settings_management.view_setting']}>
     <PageContainer>
       <PageHeader title="Settings" description="Configure platform behavior and integrations" />
 
@@ -176,5 +178,6 @@ export default function SettingsPage() {
         ))}
       </Tabs>
     </PageContainer>
+    </PermissionGuard>
   );
 }

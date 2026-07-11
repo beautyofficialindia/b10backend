@@ -30,4 +30,7 @@ export interface AuthUser {
   last_name: string;
   role: string | null;
   groups: AuthGroup[];
+  permissions: string[];
+  is_superuser: boolean;
+  is_staff: boolean;
 }
