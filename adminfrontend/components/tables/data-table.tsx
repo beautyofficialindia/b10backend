@@ -60,8 +60,15 @@ export function DataTable<T extends object>({
           {data.map((row, i) => (
             <TableRow
               key={i}
-              className={cn(onRowClick && 'cursor-pointer hover:bg-muted/50')}
+              className={cn(onRowClick && 'cursor-pointer hover:bg-muted/50 transition-colors')}
               onClick={() => onRowClick?.(row)}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  onRowClick(row);
+                }
+              }}
             >
               {columns.map((col) => (
                 <TableCell key={col.key} className={col.className}>

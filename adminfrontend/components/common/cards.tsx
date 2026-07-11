@@ -1,5 +1,6 @@
-import { type LucideIcon } from 'lucide-react';
+import { type LucideIcon, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface StatCardProps {
   title: string;
@@ -7,26 +8,59 @@ interface StatCardProps {
   change?: string;
   changeType?: 'positive' | 'negative' | 'neutral';
   icon?: LucideIcon;
+  href?: string;
   className?: string;
 }
 
-export function StatCard({ title, value, change, changeType = 'neutral', icon: Icon, className }: StatCardProps) {
-  return (
-    <div className={cn('rounded-xl border bg-card p-6 shadow-sm', className)}>
-      <div className="flex items-center justify-between">
+export function StatCard({ title, value, change, changeType = 'neutral', icon: Icon, href, className }: StatCardProps) {
+  const content = (
+    <>
+      <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+        {Icon && (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        )}
       </div>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-3xl font-bold tracking-tight">{value}</h2>
+      </div>
       {change && (
-        <p className={cn('mt-1 text-xs', {
-          'text-emerald-600 dark:text-emerald-400': changeType === 'positive',
-          'text-red-600 dark:text-red-400': changeType === 'negative',
-          'text-muted-foreground': changeType === 'neutral',
-        })}>
-          {change}
-        </p>
+        <div className="mt-3 flex items-center text-xs">
+          <span className={cn('flex items-center font-medium', {
+            'text-emerald-500': changeType === 'positive',
+            'text-rose-500': changeType === 'negative',
+            'text-muted-foreground': changeType === 'neutral',
+          })}>
+            {changeType === 'positive' && <ArrowUpRight className="mr-1 h-3 w-3" />}
+            {changeType === 'negative' && <ArrowDownRight className="mr-1 h-3 w-3" />}
+            {changeType === 'neutral' && <Minus className="mr-1 h-3 w-3" />}
+            {change}
+          </span>
+          <span className="ml-2 text-muted-foreground">vs last month</span>
+        </div>
       )}
+    </>
+  );
+
+  const baseClasses = cn(
+    'block rounded-2xl border border-border/50 bg-card p-6 shadow-sm transition-all duration-300',
+    href && 'hover:shadow-lg hover:border-primary/30 hover:-translate-y-1 cursor-pointer active:scale-[0.98]',
+    className
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={baseClasses}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={baseClasses}>
+      {content}
     </div>
   );
 }

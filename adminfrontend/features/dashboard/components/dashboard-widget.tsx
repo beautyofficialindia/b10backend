@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 import { PermissionGuard } from '@/features/auth';
-import { ErrorState } from '@/components/common';
+import { ErrorState, EmptyState } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DashboardWidgetProps {
@@ -11,6 +12,8 @@ interface DashboardWidgetProps {
   requireAll?: boolean;
   isLoading?: boolean;
   isError?: boolean;
+  isEmpty?: boolean;
+  emptyMessage?: string;
   onRetry?: () => void;
   className?: string;
   action?: ReactNode;
@@ -25,6 +28,8 @@ export function DashboardWidget({
   requireAll = true,
   isLoading,
   isError,
+  isEmpty,
+  emptyMessage = "No data available",
   onRetry,
   className,
   action,
@@ -38,6 +43,10 @@ export function DashboardWidget({
 
     if (isError) {
       return <ErrorState message="Failed to load widget" onRetry={onRetry} />;
+    }
+
+    if (isEmpty) {
+      return <EmptyState icon={Inbox} title={emptyMessage} className="min-h-[200px]" />;
     }
 
     return children;

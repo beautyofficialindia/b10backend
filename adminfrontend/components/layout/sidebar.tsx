@@ -1,6 +1,6 @@
 'use client';
 
-import { PermissionGuard } from '@/features/auth';
+import { useAuth, PermissionGuard } from '@/features/auth';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -19,6 +20,11 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  
+  const initials = user
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.username[0].toUpperCase()
+    : 'U';
 
   return (
     <motion.aside
@@ -97,13 +103,31 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
       </ScrollArea>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-sidebar-border p-2">
+      {/* Bottom Profile & Toggle */}
+      <div className="mt-auto border-t border-sidebar-border p-3 flex flex-col gap-3">
+        {/* Profile */}
+        <div className={cn("flex items-center gap-3 rounded-xl p-2", !collapsed && "bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors cursor-pointer")}>
+          <Avatar className="h-9 w-9 shrink-0 rounded-lg">
+             <AvatarFallback className="rounded-lg bg-primary/20 text-primary text-sm font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div className="flex flex-col min-w-0">
+              <span className="truncate text-sm font-semibold text-sidebar-foreground">
+                {user?.first_name || user?.username || 'Admin User'}
+              </span>
+              <span className="truncate text-xs text-sidebar-foreground/60">
+                {user?.email || 'admin@b10.com'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className={cn('h-8 w-8 text-sidebar-foreground/70', !collapsed && 'ml-auto')}
+          className={cn('h-8 w-8 text-sidebar-foreground/70 hover:bg-sidebar-accent', !collapsed && 'ml-auto')}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
