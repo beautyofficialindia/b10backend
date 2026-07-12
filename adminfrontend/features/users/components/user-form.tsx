@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TextField, PasswordField, FormSection, CheckboxField } from '@/components/forms';
@@ -30,7 +30,7 @@ export type UserFormData = z.infer<typeof createSchema>;
 
 interface UserFormProps {
   initialData?: Partial<UserFormData>;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: UserFormData) => void;
   isSubmitting?: boolean;
   isEditMode?: boolean;
   onCancel: () => void;
@@ -47,7 +47,8 @@ export function UserForm({
 }: UserFormProps) {
   const schema = isEditMode ? editSchema : createSchema;
   
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<UserFormData>({
+  const { register, handleSubmit, setValue, control, reset, formState: { errors } } = useForm<UserFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
     defaultValues: {
       username: '',
@@ -61,6 +62,10 @@ export function UserForm({
       ...initialData,
     },
   });
+
+  const groups = useWatch({ control, name: 'groups' });
+  const is_staff = useWatch({ control, name: 'is_staff' });
+  const is_superuser = useWatch({ control, name: 'is_superuser' });
 
   useEffect(() => {
     if (initialData) {
@@ -110,20 +115,20 @@ export function UserForm({
           <div className="space-y-1.5 mb-4">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Business Roles</label>
             <RoleSelector 
-              value={watch('groups')} 
+              value={groups} 
               onChange={(val) => setValue('groups', val, { shouldDirty: true })} 
             />
           </div>
           <CheckboxField 
             label="Staff" 
             description="Can access admin panel" 
-            checked={watch('is_staff')} 
+            checked={is_staff} 
             onCheckedChange={(v) => setValue('is_staff', !!v)} 
           />
           <CheckboxField 
             label="Superuser" 
             description="Full system access" 
-            checked={watch('is_superuser')} 
+            checked={is_superuser} 
             onCheckedChange={(v) => setValue('is_superuser', !!v)} 
           />
         </FormSection>

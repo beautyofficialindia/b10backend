@@ -3,6 +3,7 @@ export { ErrorState } from './error-state';
 export { LoadingScreen } from './loading-screen';
 export { StatCard, MetricCard, InfoCard, ActionCard } from './cards';
 export { SuccessAlert, ErrorAlert, WarningAlert, InfoAlert } from './alerts';
+export { AuditTimeline } from './audit-timeline';
 export { ConfirmDialog, DeleteDialog } from './dialogs';
 export { StatusBadge, RoleBadge, PriorityBadge } from './badges';
 export { SkeletonCard, SkeletonTable, SkeletonForm, FullPageLoader } from './skeletons';

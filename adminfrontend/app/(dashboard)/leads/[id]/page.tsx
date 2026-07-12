@@ -1,15 +1,17 @@
 'use client';
 
 import { use } from 'react';
-import { useRouter } from 'next/navigation';
-import { PageContainer } from '@/components/layout';
+
+import { PageContainer, PageBreadcrumbs } from '@/components/layout';
 import { StatusBadge, ErrorState, CopyButton } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, Phone, Building2, Clock, Target, Briefcase, DollarSign, FileText, MessageSquare } from 'lucide-react';
+import { Mail, Phone, Building2, Clock, Target, Briefcase, DollarSign, Edit3 } from 'lucide-react';
 import { useLeadDetail, useUpdateLeadStatus, type LeadStatus } from '@/features/leads';
 import { getStatusVariant } from '@/features/leads/utils';
+import { UnifiedTimeline, useUnifiedTimeline, LeadAssignmentWidget, LeadFollowUpWidget, PendingFollowUpBanner, FollowupsTab, NotesTab, ConversationTab } from '@/features/crm';
+import { PermissionGuard } from '@/features/auth/components/permission-guard';
 
 const statusActions: { value: LeadStatus; label: string }[] = [
   { value: 'gathering', label: 'Gathering' },
@@ -52,9 +54,9 @@ function ScoreBar({ score }: { score: number }) {
 
 export default function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { data: lead, isLoading, isError, refetch } = useLeadDetail(id);
   const updateStatus = useUpdateLeadStatus();
+  const timeline = useUnifiedTimeline(id);
 
   if (isLoading) {
     return (
@@ -89,49 +91,78 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <PageContainer>
-      {/* Back button */}
-      <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 mb-2" onClick={() => router.push('/leads')}>
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Back to Leads
-      </Button>
+      <div className="mb-4">
+        <PageBreadcrumbs items={[
+          { label: 'CRM', href: '/crm' },
+          { label: 'Leads', href: '/leads' },
+          { label: lead.full_name || 'Anonymous Lead', href: `/leads/${lead.id}` }
+        ]} />
+      </div>
 
-      {/* Summary Card */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold truncate">
-                {lead.full_name || 'Anonymous Lead'}
-              </h1>
-              <StatusBadge status={getStatusVariant(lead.status)} label={lead.status} />
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
-              {lead.email && (
-                <span className="flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" />{lead.email}
-                  <CopyButton value={lead.email} />
-                </span>
-              )}
-              {lead.phone && (
-                <span className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5" />{lead.phone}
-                  <CopyButton value={lead.phone} />
-                </span>
-              )}
-              {lead.company_name && (
-                <span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />{lead.company_name}</span>
-              )}
-            </div>
+      {/* Pending Follow Up Banner */}
+      <PendingFollowUpBanner leadId={lead.id} />
+
+      {/* Summary Cards Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Status</p>
+          <StatusBadge status={getStatusVariant(lead.status)} label={lead.status} />
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Assigned</p>
+          <p className="text-sm font-medium">{lead.assigned_admin_id ? 'Assigned' : 'Unassigned'}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Priority</p>
+          <p className="text-sm font-medium capitalize">{lead.priority || 'Normal'}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Source</p>
+          <p className="text-sm font-medium capitalize truncate w-full">{lead.source}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Created</p>
+          <p className="text-sm font-medium">{new Date(lead.created_at).toLocaleDateString()}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Activity</p>
+          <p className="text-sm font-medium">{lead.last_contacted_at ? new Date(lead.last_contacted_at).toLocaleDateString() : 'None'}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Score</p>
+          <p className={`text-sm font-bold ${lead.lead_score >= 70 ? 'text-emerald-500' : lead.lead_score >= 40 ? 'text-amber-500' : 'text-red-400'}`}>
+            {lead.lead_score}/100
+          </p>
+        </div>
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Qualified</p>
+          <p className="text-sm font-medium">{lead.qualified_at ? new Date(lead.qualified_at).toLocaleDateString() : 'Pending'}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-semibold truncate">
+              {lead.full_name || 'Anonymous Lead'}
+            </h1>
           </div>
-
-          {/* Score circle */}
-          <div className="shrink-0 w-16 text-center">
-            <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white text-sm font-bold ${
-              lead.lead_score >= 70 ? 'bg-emerald-500' : lead.lead_score >= 40 ? 'bg-amber-500' : 'bg-red-400'
-            }`}>
-              {lead.lead_score}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1">Score</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
+            {lead.email && (
+              <span className="flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" />{lead.email}
+                <CopyButton value={lead.email} />
+              </span>
+            )}
+            {lead.phone && (
+              <span className="flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5" />{lead.phone}
+                <CopyButton value={lead.phone} />
+              </span>
+            )}
+            {lead.company_name && (
+              <span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />{lead.company_name}</span>
+            )}
           </div>
         </div>
       </div>
@@ -144,7 +175,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="conversation">Conversation</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              <TabsTrigger value="followups">Follow Ups</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
 
@@ -183,71 +215,54 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </TabsContent>
 
             <TabsContent value="conversation" className="mt-4">
-              {lead.conversation && lead.conversation.messages.length > 0 ? (
-                <div className="rounded-lg border p-4 space-y-3 max-h-[500px] overflow-y-auto">
-                  {lead.conversation.messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`rounded-lg px-3 py-2 max-w-[80%] text-sm ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}>
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border p-8 text-center">
-                  <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium">No conversation</p>
-                  <p className="text-xs text-muted-foreground mt-1">No chat history available</p>
-                </div>
-              )}
+              <ConversationTab conversation={lead.conversation} />
             </TabsContent>
 
-            <TabsContent value="activity" className="mt-4">
-              <div className="rounded-lg border p-8 text-center">
-                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">Activity Timeline</p>
-                <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
-              </div>
+            <TabsContent value="timeline" className="mt-4">
+              <UnifiedTimeline 
+                items={timeline.items}
+                isLoading={timeline.isLoading}
+                isError={timeline.isError}
+                onRetry={timeline.refetch}
+              />
+            </TabsContent>
+
+            <TabsContent value="followups" className="mt-4">
+              <FollowupsTab leadId={lead.id} />
             </TabsContent>
 
             <TabsContent value="notes" className="mt-4">
-              <div className="rounded-lg border p-8 text-center">
-                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">Notes</p>
-                <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
-              </div>
+              <NotesTab leadId={lead.id} />
             </TabsContent>
           </Tabs>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           {/* Status */}
-          <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-3">Change Status</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {statusActions.map((s) => (
-                <Button
-                  key={s.value}
-                  variant={lead.status === s.value ? 'default' : 'outline'}
-                  size="sm"
-                  className="text-xs"
-                  disabled={updateStatus.isPending}
-                  onClick={() => {
-                    if (lead.status !== s.value) {
-                      updateStatus.mutate({ id: lead.id, status: s.value });
-                    }
-                  }}
-                >
-                  {s.label}
-                </Button>
-              ))}
+          <PermissionGuard permissions={['leads.change_lead']}>
+            <div className="rounded-lg border p-4">
+              <h3 className="text-sm font-medium mb-3">Change Status</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {statusActions.map((s) => (
+                  <Button
+                    key={s.value}
+                    variant={lead.status === s.value ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs"
+                    disabled={updateStatus.isPending}
+                    onClick={() => {
+                      if (lead.status !== s.value) {
+                        updateStatus.mutate({ id: lead.id, status: s.value });
+                      }
+                    }}
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          </PermissionGuard>
 
           {/* Score */}
           <div className="rounded-lg border p-4">
@@ -286,22 +301,30 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           {/* Actions */}
-          <div className="rounded-lg border p-4 space-y-2">
-            <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
-            {lead.email && (
-              <a href={`mailto:${lead.email}`} className="block">
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+          <div className="rounded-lg border p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-medium mb-2 text-muted-foreground uppercase text-[11px] tracking-wider">Communication</h3>
+              <div className="space-y-2">
+                <Button variant="outline" size="sm" className="w-full justify-start gap-2" disabled={!lead.email}>
                   <Mail className="h-3.5 w-3.5" />Send Email
                 </Button>
-              </a>
-            )}
-            {lead.phone && (
-              <a href={`tel:${lead.phone}`} className="block">
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                <Button variant="outline" size="sm" className="w-full justify-start gap-2" disabled={!lead.phone}>
                   <Phone className="h-3.5 w-3.5" />Call
                 </Button>
-              </a>
-            )}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-2 text-muted-foreground uppercase text-[11px] tracking-wider">CRM</h3>
+              <div className="space-y-4">
+                <LeadAssignmentWidget leadId={lead.id} assignedAdminId={lead.assigned_admin_id} />
+                <LeadFollowUpWidget leadId={lead.id} />
+                <div className="space-y-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                    <Edit3 className="h-3.5 w-3.5" />Edit Details
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

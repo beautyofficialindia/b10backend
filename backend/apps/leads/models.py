@@ -24,6 +24,15 @@ class Lead(models.Model):
         ('lost', 'Lost'),
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='gathering')
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    
     notification_sent = models.BooleanField(default=False)
     source = models.CharField(max_length=50, default='chatbot')
     lead_score = models.PositiveIntegerField(default=0)

@@ -17,6 +17,7 @@ interface StatusChartProps {
   data?: LeadSummary;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -48,7 +49,7 @@ export function StatusChart({ data }: StatusChartProps) {
       key 
     }));
 
-  const onPieEnter = (_: any, index: number) => setActiveIndex(index);
+  const onPieEnter = (_: unknown, index: number) => setActiveIndex(index);
   const onPieLeave = () => setActiveIndex(undefined);
 
   return (

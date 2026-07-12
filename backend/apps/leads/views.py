@@ -1,15 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView, ListCreateAPIView, UpdateAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Lead
+from django.shortcuts import get_object_or_404
+from .models import Lead, LeadNote
 from .serializers import (
     LeadListSerializer, 
     LeadDetailSerializer, 
     LeadUpdateSerializer, 
-    DashboardSummarySerializer
+    DashboardSummarySerializer,
+    LeadNoteSerializer,
+    LeadAssignmentSerializer
 )
 from apps.leads.services.lead_transition_service import LeadTransitionService
 from apps.accounts.permissions import IsAdminUser, IsAdminOrSales, IsAdminSalesOrSupport
@@ -75,3 +78,47 @@ class LeadDetailAPIView(RetrieveUpdateAPIView):
                 lead.qualified_at = timezone.now()
                 lead.save(update_fields=['qualified_at'])
             LeadTransitionService.on_status_changed(lead, old_status, lead.status)
+
+class LeadAssignmentAPIView(UpdateAPIView):
+    permission_classes = [IsAdminOrSales]
+    queryset = Lead.objects.all()
+    serializer_class = LeadAssignmentSerializer
+    lookup_field = 'id'
+    
+    def perform_update(self, serializer):
+        lead = serializer.save()
+        from apps.crm.models import LeadActivity
+        
+        assignee_id = lead.assigned_admin_id
+        if assignee_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                assigned_user = User.objects.get(id=assignee_id)
+                assigned_name = f"{assigned_user.first_name} {assigned_user.last_name}".strip() or assigned_user.email
+                notes = f"Assigned to {assigned_name} by {self.request.user.email}"
+            except User.DoesNotExist:
+                notes = f"Assigned to a user by {self.request.user.email}"
+                
+            LeadActivity.objects.create(
+                lead=lead,
+                activity_type='assignment',
+                notes=notes
+            )
+        else:
+            LeadActivity.objects.create(
+                lead=lead,
+                activity_type='assignment',
+                notes=f"Unassigned by {self.request.user.email}"
+            )
+        
+class LeadNoteListCreateAPIView(ListCreateAPIView):
+    permission_classes = [IsAdminOrSales]
+    serializer_class = LeadNoteSerializer
+    
+    def get_queryset(self):
+        return LeadNote.objects.filter(lead_id=self.kwargs['id'])
+        
+    def perform_create(self, serializer):
+        lead = get_object_or_404(Lead, id=self.kwargs['id'])
+        serializer.save(lead=lead, author_id=self.request.user.id)

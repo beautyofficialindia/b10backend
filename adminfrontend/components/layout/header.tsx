@@ -15,9 +15,11 @@ import {
 import { ThemeToggle } from './theme-toggle';
 import { MobileSidebar } from './mobile-sidebar';
 import { useAuth } from '@/features/auth';
+import { useRouter } from 'next/navigation';
 
 export function Header() {
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const initials = user
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.username[0].toUpperCase()
@@ -53,7 +55,9 @@ export function Header() {
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/profile')}>
+              Profile
+            </DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={logout}>

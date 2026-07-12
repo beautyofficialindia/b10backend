@@ -2,13 +2,14 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
   header: string;
   className?: string;
   render?: (row: T) => React.ReactNode;
+  sortable?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -18,6 +19,9 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
   className?: string;
+  sortKey?: string;
+  sortDirection?: 'asc' | 'desc';
+  onSort?: (key: string) => void;
 }
 
 export function DataTable<T extends object>({
@@ -27,6 +31,9 @@ export function DataTable<T extends object>({
   emptyMessage = 'No data found',
   onRowClick,
   className,
+  sortKey,
+  sortDirection,
+  onSort,
 }: DataTableProps<T>) {
   if (isLoading) {
     return (
@@ -51,7 +58,25 @@ export function DataTable<T extends object>({
           <TableRow>
             {columns.map((col) => (
               <TableHead key={col.key} className={col.className}>
-                {col.header}
+                {col.sortable ? (
+                  <button
+                    onClick={() => onSort?.(col.key)}
+                    className="flex items-center gap-1.5 hover:text-foreground hover:bg-muted/50 px-2 py-1 -ml-2 rounded-md transition-colors w-full justify-start text-left font-medium text-muted-foreground"
+                  >
+                    {col.header}
+                    {sortKey === col.key ? (
+                      sortDirection === 'desc' ? (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                    )}
+                  </button>
+                ) : (
+                  col.header
+                )}
               </TableHead>
             ))}
           </TableRow>

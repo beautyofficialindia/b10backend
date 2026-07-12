@@ -1,2 +1,14 @@
 export { PipelineCard } from './pipeline-card';
 export { PipelineColumn } from './pipeline-column';
+export { UnifiedTimeline } from './unified-timeline';
+export { LeadAssignmentDialog } from './lead-assignment-dialog';
+export { LeadAssignmentWidget } from './lead-assignment-widget';
+export { FollowUpForm } from './followup-form';
+export { ScheduleFollowUpDialog } from './schedule-followup-dialog';
+export { EditFollowUpDialog } from './edit-followup-dialog';
+export { LeadFollowUpWidget } from './lead-followup-widget';
+export { PendingFollowUpBanner } from './pending-followup-banner';
+export { FollowupsTab } from './followups-tab';
+export { NotesTab } from './notes-tab';
+export { LeadNoteForm } from './lead-note-form';
+export { ConversationTab } from './conversation-tab';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '../hooks/use-auth';
+import { useAuth, useHasPermission } from '../hooks/use-auth';
 
 interface PermissionGuardProps {
   permissions?: readonly string[];
@@ -15,7 +15,8 @@ export function PermissionGuard({
   children,
   fallback = null,
 }: PermissionGuardProps) {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const hasAccess = useHasPermission(permissions, requireAll);
 
   // If auth is still loading, return fallback to prevent flashes of unauthorized content
   if (isLoading) {
@@ -23,24 +24,9 @@ export function PermissionGuard({
   }
 
   // Must be authenticated
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return <>{fallback}</>;
   }
-
-  // Superusers bypass all permission checks
-  if (user.is_superuser) {
-    return <>{children}</>;
-  }
-
-  // If no specific permissions are required, just being authenticated is enough
-  if (permissions.length === 0) {
-    return <>{children}</>;
-  }
-
-  // Check permissions
-  const hasAccess = requireAll
-    ? permissions.every((p) => user.permissions?.includes(p))
-    : permissions.some((p) => user.permissions?.includes(p));
 
   if (!hasAccess) {
     return <>{fallback}</>;

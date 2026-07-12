@@ -4,9 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { authApi } from '../api';
-import type { LoginRequest, AuthUser } from '../types';
+import type { LoginRequest, AuthUser, ChangePasswordRequest, UpdateProfileRequest } from '../types';
 
-const AUTH_QUERY_KEY = ['auth', 'me'];
+export const AUTH_QUERY_KEY = ['auth', 'me'];
 
 function hasAccessToken(): boolean {
   if (typeof window === 'undefined') return false;
@@ -57,15 +57,8 @@ export function useAuth() {
     }
   }, [queryClient, router]);
 
-  // Determine auth state:
-  // - If no token exists and query hasn't fetched, user is not authenticated
-  // - If query is loading, we're restoring session
-  // - If query errored, session is invalid
   const isAuthenticated = useMemo(() => !!user && !isError, [user, isError]);
-
-  // isLoading should be true only while actively checking session
   const isCheckingAuth = isLoading && hasAccessToken();
-  // If no token exists, we're not loading — user is simply not authenticated
   const effectiveLoading = hasAccessToken() ? isCheckingAuth : false;
 
   return {
@@ -78,4 +71,34 @@ export function useAuth() {
     isLoginLoading: loginMutation.isPending,
     logout,
   };
+}
+
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ChangePasswordRequest) => authApi.changePassword(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+    }
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateProfileRequest) => authApi.updateProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+    }
+  });
+}
+
+export function useHasPermission(permissions: readonly string[] = [], requireAll = true) {
+  const { user } = useAuth();
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  if (permissions.length === 0) return true;
+  return requireAll
+    ? permissions.every((p) => user.permissions?.includes(p))
+    : permissions.some((p) => user.permissions?.includes(p));
 }

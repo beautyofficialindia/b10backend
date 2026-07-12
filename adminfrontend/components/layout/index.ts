@@ -5,3 +5,4 @@ export { Header } from './header';
 export { ThemeToggle } from './theme-toggle';
 export { PageContainer } from './page-container';
 export { PageHeader } from './page-header';
+export { PageBreadcrumbs } from './page-breadcrumbs';

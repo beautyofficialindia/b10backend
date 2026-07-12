@@ -7,6 +7,7 @@ export interface Lead {
   industry: string | null;
   project_type: string | null;
   status: LeadStatus;
+  priority: LeadPriority;
   created_at: string;
 }
 
@@ -22,6 +23,7 @@ export interface LeadDetail {
   timeline: string | null;
   requirements: string | null;
   status: LeadStatus;
+  priority: LeadPriority;
   source: string;
   lead_score: number;
   assigned_admin_id: string | null;
@@ -48,6 +50,8 @@ export interface Message {
 }
 
 export type LeadStatus = 'gathering' | 'qualified' | 'disqualified' | 'escalated' | 'converted' | 'lost';
+
+export type LeadPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface LeadListResponse {
   count: number;

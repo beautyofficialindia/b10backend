@@ -3,13 +3,13 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageContainer } from '@/components/layout';
-import { StatusBadge, RoleBadge, ErrorState, CopyButton } from '@/components/common';
+import { StatusBadge, RoleBadge, ErrorState, CopyButton, AuditTimeline } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, Edit, Shield, Mail, Key, UserCheck, UserX, Clock } from 'lucide-react';
-import { useUserDetail, useActivateUser, useDeactivateUser, useResetPassword, useUserAuditLog, ResetPasswordDialog } from '@/features/users';
+import { ArrowLeft, Edit, Shield, Mail, Key, UserCheck, UserX } from 'lucide-react';
+import { useUserDetail, useActivateUser, useDeactivateUser, useUserAuditLog, ResetPasswordDialog } from '@/features/users';
 
 export default function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -18,7 +18,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const { data, isLoading, isError, refetch } = useUserDetail(userId);
   const activateMutation = useActivateUser();
   const deactivateMutation = useDeactivateUser();
-  const resetPwMutation = useResetPassword();
   const auditLog = useUserAuditLog(userId);
 
   const [resetOpen, setResetOpen] = useState(false);
@@ -118,28 +117,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </TabsContent>
 
         <TabsContent value="audit" className="mt-4">
-          <div className="rounded-lg border">
-            {auditLog.isLoading ? (
-              <div className="p-8 text-center"><Skeleton className="h-4 w-48 mx-auto" /></div>
-            ) : auditLog.data?.data && auditLog.data.data.length > 0 ? (
-              <div className="divide-y">
-                {auditLog.data.data.map((entry) => (
-                  <div key={entry.id} className="flex items-start gap-3 p-3">
-                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">{entry.description}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        by {entry.actor_username || 'System'} · {new Date(entry.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded shrink-0">{entry.action}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center text-sm text-muted-foreground">No audit entries</div>
-            )}
-          </div>
+          <AuditTimeline entries={auditLog.data?.data || []} isLoading={auditLog.isLoading} />
         </TabsContent>
       </Tabs>
 

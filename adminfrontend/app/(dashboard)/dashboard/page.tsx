@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useAuth, PermissionGuard } from '@/features/auth';
 import { PageContainer } from '@/components/layout';
-import { StatCard, StatusBadge } from '@/components/common';
+import { StatCard } from '@/components/common';
 import { DataTable, type Column } from '@/components/tables';
 import { useDashboardStats, useLeadSummary, useFunnel, useRecentLeads, useAnalyticsTimeline } from '@/features/dashboard/hooks/use-dashboard';
 import { Button } from '@/components/ui/button';

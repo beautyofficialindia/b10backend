@@ -13,6 +13,7 @@ class LeadActivity(models.Model):
         ('followup_created', 'Follow-up Created'),
         ('followup_completed', 'Follow-up Completed'),
         ('note_added', 'Note Added'),
+        ('assignment', 'Assignment'),
     ]
     activity_type = models.CharField(max_length=50, choices=ACTIVITY_TYPES)
     notes = models.TextField(blank=True, null=True)
@@ -35,8 +36,16 @@ class LeadStatusHistory(models.Model):
         ordering = ['-changed_at']
 
 class LeadFollowUp(models.Model):
+    class FollowUpType(models.TextChoices):
+        CALL = 'call', 'Call'
+        MEETING = 'meeting', 'Meeting'
+        EMAIL = 'email', 'Email'
+        DEMO = 'demo', 'Demo'
+        OTHER = 'other', 'Other'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     lead = models.ForeignKey('leads.Lead', on_delete=models.CASCADE, related_name='followups')
+    followup_type = models.CharField(max_length=20, choices=FollowUpType.choices, default=FollowUpType.OTHER)
     scheduled_at = models.DateTimeField()
     
     STATUS_CHOICES = [
@@ -52,3 +61,11 @@ class LeadFollowUp(models.Model):
 
     class Meta:
         ordering = ['scheduled_at']
+        indexes = [
+            models.Index(fields=['lead', 'status']),
+            models.Index(fields=['scheduled_at']),
+            models.Index(fields=['followup_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_followup_type_display()} for {self.lead} at {self.scheduled_at}"

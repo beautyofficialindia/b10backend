@@ -60,3 +60,18 @@ class ChangePasswordSerializer(serializers.Serializer):
 class ChangePasswordResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'username']
+
+    def validate(self, attrs):
+        allowed_keys = {'first_name', 'last_name', 'email', 'username'}
+        input_keys = set(self.initial_data.keys())
+        forbidden_keys = input_keys - allowed_keys
+        
+        if forbidden_keys:
+            errors = {key: ["This field cannot be updated."] for key in forbidden_keys}
+            raise serializers.ValidationError(errors)
+        return super().validate(attrs)

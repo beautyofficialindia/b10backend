@@ -9,7 +9,8 @@ from .serializers import (
     CustomTokenObtainPairSerializer, UserSerializer,
     LogoutRequestSerializer, RefreshRequestSerializer,
     LoginResponseSerializer, TokenResponseSerializer,
-    ChangePasswordSerializer, ChangePasswordResponseSerializer
+    ChangePasswordSerializer, ChangePasswordResponseSerializer,
+    UpdateProfileSerializer
 )
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -61,9 +62,55 @@ class LogoutAPIView(APIView):
 class MeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: UserSerializer})
     def get(self, request, *args, **kwargs):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        request=UpdateProfileSerializer,
+        responses={200: UserSerializer},
+        examples=[
+            OpenApiExample(
+                'Request',
+                value={
+                  "first_name": "Muskan",
+                  "last_name": "Kumar",
+                  "email": "muskan@example.com",
+                  "username": "muskankumar"
+                },
+                request_only=True
+            ),
+            OpenApiExample(
+                'Forbidden Field Error',
+                value={
+                  "detail": "Only first_name, last_name, email and username can be updated. Forbidden fields: groups."
+                },
+                response_only=True,
+                status_codes=[str(status.HTTP_400_BAD_REQUEST)]
+            )
+        ]
+    )
+    def patch(self, request, *args, **kwargs):
+        serializer = UpdateProfileSerializer(request.user, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer.save()
+        
+        try:
+            UserService.create_audit_log(
+                actor=request.user,
+                target_user=request.user,
+                action='profile_updated',
+                description=f"User '{request.user.username}' updated their profile."
+            )
+        except Exception:
+            pass
+
+        # Return the full user object via UserSerializer so frontend has updated view
+        response_serializer = UserSerializer(request.user)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 class RefreshAPIView(TokenRefreshView):
     @extend_schema(

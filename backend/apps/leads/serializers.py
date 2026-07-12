@@ -18,13 +18,50 @@ class LeadListSerializer(serializers.ModelSerializer):
 class LeadUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lead
-        fields = ['status']
+        fields = ['status', 'priority']
         
     def validate_status(self, value):
-        allowed_statuses = ['gathering', 'qualified', 'converted', 'lost', 'escalated']
+        allowed_statuses = ['gathering', 'qualified', 'disqualified', 'converted', 'lost', 'escalated']
         if value not in allowed_statuses:
             raise serializers.ValidationError("Invalid status update.")
         return value
+
+    def validate_priority(self, value):
+        allowed_priorities = ['low', 'medium', 'high', 'urgent']
+        if value not in allowed_priorities:
+            raise serializers.ValidationError("Invalid priority update.")
+        return value
+
+class LeadAssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lead
+        fields = ['assigned_admin_id']
+
+from .models import LeadNote
+
+from django.contrib.auth import get_user_model
+
+class LeadNoteSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LeadNote
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']
+
+    def get_author(self, obj):
+        if not obj.author_id:
+            return None
+        User = get_user_model()
+        try:
+            user = User.objects.get(id=obj.author_id)
+            return {
+                "id": user.id,
+                "username": getattr(user, 'username', getattr(user, 'email', '')),
+                "full_name": getattr(user, 'full_name', f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip())
+            }
+        except User.DoesNotExist:
+            return None
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:

@@ -3,12 +3,12 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { PageContainer, PageHeader } from '@/components/layout';
-import { PermissionGuard } from '@/features/auth';
+import { PageContainer, PageHeader, PageBreadcrumbs } from '@/components/layout';
+import { PermissionGuard, useHasPermission } from '@/features/auth';
 import { ErrorState, EmptyState, SkeletonTable, DeleteDialog } from '@/components/common';
 import { DataTable, TableToolbar, TablePagination, type Column } from '@/components/tables';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Shield, Plus, Eye } from 'lucide-react';
+import { RefreshCw, Shield, Plus, Eye, Trash2 } from 'lucide-react';
 import { useRolesList, useDeleteRole, type Role, type RoleFilters } from '@/features/roles';
 import { useDebounce } from '@/hooks/use-debounce';
 import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
@@ -16,14 +16,14 @@ import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 const PAGE_SIZE = 20;
 
 const columns: Column<Role>[] = [
-  { key: 'name', header: 'Role', render: (row) => <span className="text-sm font-medium">{row.name}</span> },
+  { key: 'name', header: 'Role', sortable: true, render: (row) => <span className="text-sm font-medium">{row.name}</span> },
   { key: 'users_count', header: 'Users', render: (row) => <span className="text-sm">{row.users_count}</span>, className: 'hidden sm:table-cell' },
   { key: 'permissions_count', header: 'Permissions', render: (row) => <span className="text-sm">{row.permissions_count}</span>, className: 'hidden md:table-cell' },
   { key: 'actions', header: '', render: (row) => (
-    <div className="flex gap-1">
+    <div className="flex gap-1 justify-end">
       <Link href={`/roles/${row.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="h-3.5 w-3.5" /></Button></Link>
     </div>
-  ), className: 'w-10' },
+  ), className: 'w-16' },
 ];
 
 export default function RolesPage() {
@@ -39,12 +39,45 @@ export default function RolesPage() {
   const roles = data?.data || [];
   const totalCount = data?.meta?.pagination?.total_count || 0;
   const totalPages = data?.meta?.pagination?.total_pages || 0;
+  const hasDeleteGroup = useHasPermission(['auth.delete_group']);
+
+  const handleSort = (key: string) => {
+    setFilters(f => {
+      if (f.ordering === key) return { ...f, ordering: `-${key}`, page: 1 };
+      if (f.ordering === `-${key}`) return { ...f, ordering: key, page: 1 };
+      return { ...f, ordering: key, page: 1 };
+    });
+  };
+
+  // Add delete action dynamically based on permission
+  const dynamicColumns = useMemo(() => {
+    if (!hasDeleteGroup) return columns;
+    const cols = [...columns];
+    cols[cols.length - 1] = {
+      key: 'actions', header: '', className: 'w-20',
+      render: (row) => (
+        <div className="flex gap-1 justify-end">
+          <Link href={`/roles/${row.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="h-3.5 w-3.5" /></Button></Link>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(row)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )
+    };
+    return cols;
+  }, [hasDeleteGroup]);
 
   return (
     <PermissionGuard permissions={['auth.view_group']}>
     <PageContainer>
-      <PageHeader title="Roles" description="Manage roles and permissions">
-        <Button size="sm" onClick={() => router.push('/roles/new')} className="gap-1.5"><Plus className="h-3.5 w-3.5" />New Role</Button>
+      <PageHeader 
+        title="Roles" 
+        description="Manage roles and permissions"
+        breadcrumbs={<PageBreadcrumbs items={[{ label: 'Roles', href: '/roles' }]} />}
+      >
+        <PermissionGuard permissions={['auth.add_group']}>
+          <Button size="sm" onClick={() => router.push('/roles/new')} className="gap-1.5"><Plus className="h-3.5 w-3.5" />New Role</Button>
+        </PermissionGuard>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-1.5">
           <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />Refresh
         </Button>
@@ -56,11 +89,19 @@ export default function RolesPage() {
 
       {isLoading ? <SkeletonTable rows={5} cols={4} /> : isError ? <ErrorState message="Failed to load roles" onRetry={() => refetch()} /> : roles.length === 0 ? (
         <EmptyState icon={Shield} title="No roles found" description="Create your first role">
-          <Button size="sm" onClick={() => router.push('/roles/new')}>Create Role</Button>
+          <PermissionGuard permissions={['auth.add_group']}>
+            <Button size="sm" onClick={() => router.push('/roles/new')}>Create Role</Button>
+          </PermissionGuard>
         </EmptyState>
       ) : (
         <>
-          <DataTable columns={columns} data={roles} />
+          <DataTable 
+            columns={dynamicColumns} 
+            data={roles}
+            sortKey={filters.ordering?.replace('-', '')}
+            sortDirection={filters.ordering?.startsWith('-') ? 'desc' : 'asc'}
+            onSort={handleSort}
+          />
           {totalPages > 1 && <TablePagination page={filters.page || 1} totalPages={totalPages} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={(p) => setFilters(f => ({...f, page: p}))} />}
         </>
       )}
