@@ -2,11 +2,15 @@ from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle
 
 from apps.accounts.permissions import IsAdminUser
-from apps.knowledge_base.models import KnowledgeEntry
+from rest_framework import viewsets
+
+from apps.knowledge_base.models import KnowledgeEntry, Category, Tag
 from apps.knowledge_base.serializers import (
     KnowledgeEntryDetailSerializer,
     KnowledgeEntryListSerializer,
     KnowledgeEntryWriteSerializer,
+    CategorySerializer,
+    TagSerializer,
 )
 from apps.knowledge_base.services.knowledge_service import KnowledgeService
 from common.pagination import StandardPageNumberPagination
@@ -64,6 +68,21 @@ class PublicKnowledgeDetailView(APIView):
 
 
 # ─── Admin Views ────────────────────────────────────────────────────────────────
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    pagination_class = StandardPageNumberPagination
+    search_fields = ['name', 'slug']
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    pagination_class = StandardPageNumberPagination
+    search_fields = ['name', 'slug']
 
 
 class AdminKnowledgeListCreateView(APIView):

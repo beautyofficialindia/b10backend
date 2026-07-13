@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from apps.knowledge_base.models import KnowledgeEntry
+from apps.knowledge_base.models import KnowledgeEntry, Category, Tag
 from apps.knowledge_base.serializers import (
     KnowledgeEntryDetailSerializer,
     KnowledgeEntryListSerializer,
@@ -17,16 +17,16 @@ class KnowledgeEntryModelTests(TestCase):
 
     def test_auto_slug_generation(self):
         entry = KnowledgeEntry.objects.create(
-            category='faq', title='How to Reset Password', content='Go to settings.'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='How to Reset Password', content='Go to settings.'
         )
         self.assertEqual(entry.slug, 'how-to-reset-password')
 
     def test_slug_collision_appends_uuid_suffix(self):
         KnowledgeEntry.objects.create(
-            category='faq', title='Test Entry', content='First'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Test Entry', content='First'
         )
         entry2 = KnowledgeEntry.objects.create(
-            category='faq', title='Test Entry', content='Second'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Test Entry', content='Second'
         )
         self.assertTrue(entry2.slug.startswith('test-entry-'))
         self.assertNotEqual(entry2.slug, 'test-entry')
@@ -34,7 +34,7 @@ class KnowledgeEntryModelTests(TestCase):
 
     def test_published_at_auto_stamped_on_first_publish(self):
         entry = KnowledgeEntry.objects.create(
-            category='faq', title='Pub Test', content='x'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Pub Test', content='x'
         )
         self.assertIsNone(entry.published_at)
         entry.status = 'published'
@@ -44,7 +44,7 @@ class KnowledgeEntryModelTests(TestCase):
 
     def test_published_at_not_overwritten_on_re_publish(self):
         entry = KnowledgeEntry.objects.create(
-            category='faq', title='Re-Pub Test', content='x', status='published'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Re-Pub Test', content='x', status='published'
         )
         first_published_at = entry.published_at
         entry.status = 'draft'
@@ -56,7 +56,7 @@ class KnowledgeEntryModelTests(TestCase):
 
     def test_deleted_at_auto_stamped_on_soft_delete(self):
         entry = KnowledgeEntry.objects.create(
-            category='faq', title='Del Test', content='x'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Del Test', content='x'
         )
         self.assertIsNone(entry.deleted_at)
         entry.is_deleted = True
@@ -65,7 +65,7 @@ class KnowledgeEntryModelTests(TestCase):
         self.assertIsNotNone(entry.deleted_at)
 
     def test_str_format(self):
-        entry = KnowledgeEntry(category='service', title='Web Development')
+        entry = KnowledgeEntry(category=Category.objects.get_or_create(slug='service', defaults={'name':'service'})[0], title='Web Development')
         self.assertEqual(str(entry), '[service] Web Development')
 
     def test_meta_ordering(self):
@@ -79,15 +79,22 @@ class KnowledgeServiceTests(TestCase):
     """Tests for KnowledgeService."""
 
     def setUp(self):
+        self.cat_faq, _ = Category.objects.get_or_create(name='FAQ', slug='faq')
+        self.cat_service, _ = Category.objects.get_or_create(name='Service', slug='service')
+        self.cat_company, _ = Category.objects.get_or_create(name='Company', slug='company')
+        self.cat_industry, _ = Category.objects.get_or_create(name='Industry', slug='industry')
+        self.cat_technology, _ = Category.objects.get_or_create(name='Technology', slug='technology')
+        self.cat_contact, _ = Category.objects.get_or_create(name='Contact', slug='contact')
+
         self.user = User.objects.create_user(username='admin', password='pass')
         self.entry1 = KnowledgeEntry.objects.create(
-            category='faq', title='FAQ 1', content='Answer 1', status='published'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='FAQ 1', content='Answer 1', status='published'
         )
         self.entry2 = KnowledgeEntry.objects.create(
-            category='service', title='Web Dev', content='We build web apps', status='draft'
+            category=Category.objects.get_or_create(slug='service', defaults={'name':'service'})[0], title='Web Dev', content='We build web apps', status='draft'
         )
         self.entry3 = KnowledgeEntry.objects.create(
-            category='faq', title='FAQ 2', content='Answer 2', status='published', is_deleted=True
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='FAQ 2', content='Answer 2', status='published', is_deleted=True
         )
 
     def test_list_entries_no_filter(self):
@@ -96,7 +103,7 @@ class KnowledgeServiceTests(TestCase):
         self.assertEqual(entries.count(), 2)
 
     def test_list_entries_category_filter(self):
-        entries = KnowledgeService.list_entries(category='faq')
+        entries = KnowledgeService.list_entries(category=cls.category.id)
         self.assertEqual(entries.count(), 1)
         self.assertEqual(entries.first().pk, self.entry1.pk)
 
@@ -108,6 +115,31 @@ class KnowledgeServiceTests(TestCase):
     def test_list_entries_search_whitespace_ignored(self):
         entries = KnowledgeService.list_entries(search='   ')
         self.assertEqual(entries.count(), 2)
+
+    def test_list_entries_search_ranking(self):
+        KnowledgeEntry.objects.create(
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Web Web Web', content='Nothing', status='published'
+        )
+        KnowledgeEntry.objects.create(
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Something Else', content='web', status='published'
+        )
+        entries = KnowledgeService.list_entries(search='web')
+        self.assertTrue(entries.count() >= 2)
+        self.assertEqual(entries.first().title, 'Web Web Web')
+
+    def test_list_entries_search_and_ordering(self):
+        KnowledgeEntry.objects.create(
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='A Web', content='', status='published', sort_order=100
+        )
+        KnowledgeEntry.objects.create(
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Z Web Web', content='', status='published', sort_order=1
+        )
+        entries = KnowledgeService.list_entries(search='Web', ordering='sort_order')
+        self.assertEqual(entries.first().title, 'Z Web Web')
+
+    def test_list_entries_ordering_no_search(self):
+        entries = KnowledgeService.list_entries(ordering='title')
+        self.assertTrue(entries.first().title < entries.last().title)
 
     def test_list_entries_status_filter(self):
         entries = KnowledgeService.list_entries(status='published')
@@ -133,7 +165,7 @@ class KnowledgeServiceTests(TestCase):
 
     def test_create_entry_valid(self):
         entry = KnowledgeService.create_entry(
-            data={'category': 'faq', 'title': 'New FAQ', 'content': 'Answer'},
+            data={'category': Category.objects.get_or_create(slug='faq')[0].id, 'title': 'New FAQ', 'content': 'Answer'},
             user=self.user,
         )
         self.assertEqual(entry.status, 'draft')
@@ -148,7 +180,7 @@ class KnowledgeServiceTests(TestCase):
 
     def test_create_entry_missing_title(self):
         with self.assertRaises(ValueError) as ctx:
-            KnowledgeService.create_entry(data={'category': 'faq'}, user=self.user)
+            KnowledgeService.create_entry(data={'category': Category.objects.get_or_create(slug='faq')[0]}, user=self.user)
         self.assertIn('title', str(ctx.exception))
 
     def test_update_entry_valid(self):
@@ -208,7 +240,7 @@ class KnowledgeServiceTests(TestCase):
     def test_get_scoped_knowledge_as_text(self):
         # Create a published service entry
         KnowledgeEntry.objects.create(
-            category='company', title='Company Info', content='We are B10',
+            category=Category.objects.get_or_create(slug='company', defaults={'name':'company'})[0], title='Company Info', content='We are B10',
             status='published',
         )
         text = KnowledgeService.get_scoped_knowledge_as_text(
@@ -222,7 +254,7 @@ class KnowledgeServiceTests(TestCase):
 
     def test_get_scoped_knowledge_as_text_json_indent(self):
         KnowledgeEntry.objects.create(
-            category='service', title='Mobile Dev', content='We build apps',
+            category=Category.objects.get_or_create(slug='service', defaults={'name':'service'})[0], title='Mobile Dev', content='We build apps',
             status='published',
         )
         text = KnowledgeService.get_scoped_knowledge_as_text(
@@ -236,9 +268,16 @@ class KnowledgeEntrySerializerTests(TestCase):
     """Tests for serializers."""
 
     def setUp(self):
+        self.cat_faq, _ = Category.objects.get_or_create(name='FAQ', slug='faq')
+        self.cat_service, _ = Category.objects.get_or_create(name='Service', slug='service')
+        self.cat_company, _ = Category.objects.get_or_create(name='Company', slug='company')
+        self.cat_industry, _ = Category.objects.get_or_create(name='Industry', slug='industry')
+        self.cat_technology, _ = Category.objects.get_or_create(name='Technology', slug='technology')
+        self.cat_contact, _ = Category.objects.get_or_create(name='Contact', slug='contact')
+
         self.user = User.objects.create_user(username='testuser', password='pass')
         self.entry = KnowledgeEntry.objects.create(
-            category='faq',
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0],
             title='Test FAQ',
             content='Test answer',
             status='published',
@@ -269,14 +308,14 @@ class KnowledgeEntrySerializerTests(TestCase):
 
     def test_write_serializer_valid(self):
         serializer = KnowledgeEntryWriteSerializer(data={
-            'category': 'faq',
+            'category': Category.objects.get_or_create(slug='faq')[0].id,
             'title': 'New Question',
         })
-        self.assertTrue(serializer.is_valid())
+        self.assertTrue(serializer.is_valid(), serializer.errors)
 
     def test_write_serializer_invalid_category(self):
         serializer = KnowledgeEntryWriteSerializer(data={
-            'category': 'invalid',
+            'category': 99999,
             'title': 'Test',
         })
         self.assertFalse(serializer.is_valid())
@@ -290,7 +329,7 @@ class KnowledgeEntrySerializerTests(TestCase):
 
     def test_write_serializer_invalid_source(self):
         serializer = KnowledgeEntryWriteSerializer(data={
-            'category': 'faq',
+            'category': Category.objects.get_or_create(slug='faq')[0].id,
             'title': 'Test',
             'source': 'unknown',
         })
@@ -314,14 +353,21 @@ class PublicEndpointTests(APITestCase):
     """Integration tests for public read endpoints."""
 
     def setUp(self):
+        self.cat_faq, _ = Category.objects.get_or_create(name='FAQ', slug='faq')
+        self.cat_service, _ = Category.objects.get_or_create(name='Service', slug='service')
+        self.cat_company, _ = Category.objects.get_or_create(name='Company', slug='company')
+        self.cat_industry, _ = Category.objects.get_or_create(name='Industry', slug='industry')
+        self.cat_technology, _ = Category.objects.get_or_create(name='Technology', slug='technology')
+        self.cat_contact, _ = Category.objects.get_or_create(name='Contact', slug='contact')
+
         self.published = KnowledgeEntry.objects.create(
-            category='faq', title='Public FAQ', content='Public answer', status='published'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Public FAQ', content='Public answer', status='published'
         )
         self.draft = KnowledgeEntry.objects.create(
-            category='faq', title='Draft FAQ', content='Draft answer', status='draft'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Draft FAQ', content='Draft answer', status='draft'
         )
         self.deleted = KnowledgeEntry.objects.create(
-            category='faq', title='Deleted FAQ', content='Deleted answer',
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Deleted FAQ', content='Deleted answer',
             status='published', is_deleted=True
         )
 
@@ -334,13 +380,13 @@ class PublicEndpointTests(APITestCase):
 
     def test_list_category_filter(self):
         KnowledgeEntry.objects.create(
-            category='service', title='Web Dev', content='apps', status='published'
+            category=Category.objects.get_or_create(slug='service', defaults={'name':'service'})[0], title='Web Dev', content='apps', status='published'
         )
         response = self.client.get('/api/v1/kb/entries/?category=service')
         self.assertEqual(response.status_code, 200)
         data = response.json()['data']
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['category'], 'service')
+        self.assertEqual(data[0]['category']['slug'], 'service')
 
     def test_list_search_filter(self):
         response = self.client.get('/api/v1/kb/entries/?search=Public')
@@ -382,6 +428,13 @@ class AdminEndpointTests(APITestCase):
     """Integration tests for admin CRUD and status transition endpoints."""
 
     def setUp(self):
+        self.cat_faq, _ = Category.objects.get_or_create(name='FAQ', slug='faq')
+        self.cat_service, _ = Category.objects.get_or_create(name='Service', slug='service')
+        self.cat_company, _ = Category.objects.get_or_create(name='Company', slug='company')
+        self.cat_industry, _ = Category.objects.get_or_create(name='Industry', slug='industry')
+        self.cat_technology, _ = Category.objects.get_or_create(name='Technology', slug='technology')
+        self.cat_contact, _ = Category.objects.get_or_create(name='Contact', slug='contact')
+
         # Create admin user
         self.admin_user = User.objects.create_user(username='admin_user', password='pass')
         admin_group = Group.objects.create(name='Admin')
@@ -394,7 +447,7 @@ class AdminEndpointTests(APITestCase):
 
         # Create entry
         self.entry = KnowledgeEntry.objects.create(
-            category='service', title='Test Service', content='Description', status='draft'
+            category=Category.objects.get_or_create(slug='service', defaults={'name':'service'})[0], title='Test Service', content='Description', status='draft'
         )
 
         # Get admin JWT token
@@ -430,7 +483,7 @@ class AdminEndpointTests(APITestCase):
     def test_create_valid_201(self):
         response = self.client.post(
             '/api/v1/admin/kb/entries/',
-            data={'category': 'faq', 'title': 'New FAQ', 'content': 'Answer'},
+            data={'category': Category.objects.get_or_create(slug='faq')[0].id, 'title': 'New FAQ', 'content': 'Answer'},
             format='json',
             **self._auth_headers(self.admin_token)
         )
@@ -529,7 +582,7 @@ class AdminEndpointTests(APITestCase):
 
     def test_status_filter(self):
         KnowledgeEntry.objects.create(
-            category='faq', title='Published FAQ', content='x', status='published'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='Published FAQ', content='x', status='published'
         )
         response = self.client.get(
             '/api/v1/admin/kb/entries/?status=published',
@@ -542,7 +595,7 @@ class AdminEndpointTests(APITestCase):
 
     def test_ordering(self):
         KnowledgeEntry.objects.create(
-            category='faq', title='AAA', content='x', status='draft'
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='AAA', content='x', status='draft'
         )
         response = self.client.get(
             '/api/v1/admin/kb/entries/?ordering=title',
@@ -559,13 +612,13 @@ class ChatbotCompatibilityTests(TestCase):
     def test_scoped_knowledge_format(self):
         """get_scoped_knowledge_as_text produces correct section labels and JSON format."""
         KnowledgeEntry.objects.create(
-            category='company', title='Company Info',
+            category=Category.objects.get_or_create(slug='company', defaults={'name':'company'})[0], title='Company Info',
             content='We are B10 IT Solution',
             structured_data={'name': 'B10 IT Solution', 'founded': 2020},
             status='published',
         )
         KnowledgeEntry.objects.create(
-            category='service', title='Web Development',
+            category=Category.objects.get_or_create(slug='service', defaults={'name':'service'})[0], title='Web Development',
             content='Custom web apps',
             structured_data={'technologies': ['React', 'Django']},
             status='published',
@@ -605,8 +658,9 @@ class ChatbotCompatibilityTests(TestCase):
             ('company', 'Co'), ('service', 'Svc'),
             ('industry', 'Ind'), ('faq', 'FAQ Q'), ('contact', 'Contact'),
         ]:
+            cat_obj, _ = Category.objects.get_or_create(slug=cat, defaults={'name': cat})
             KnowledgeEntry.objects.create(
-                category=cat, title=title, content='text', status='published'
+                category=cat_obj, title=title, content='text', status='published'
             )
 
         text = KnowledgeService.get_scoped_knowledge_as_text()

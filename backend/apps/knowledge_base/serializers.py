@@ -1,15 +1,31 @@
 from rest_framework import serializers
 
-from apps.knowledge_base.models import KnowledgeEntry
+from apps.knowledge_base.models import KnowledgeEntry, Category, Tag
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'color', 'icon', 'sort_order', 'is_active']
+        read_only_fields = ['id']
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['id', 'name', 'slug', 'is_active']
+        read_only_fields = ['id']
 
 
 class KnowledgeEntryListSerializer(serializers.ModelSerializer):
     """Read-only serializer for list views (subset of fields)."""
+    category = CategorySerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
         model = KnowledgeEntry
         fields = [
-            'id', 'category', 'title', 'slug', 'status', 'source',
+            'id', 'category', 'tags', 'title', 'slug', 'status', 'source',
             'sort_order', 'published_at', 'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -17,14 +33,15 @@ class KnowledgeEntryListSerializer(serializers.ModelSerializer):
 
 class KnowledgeEntryDetailSerializer(serializers.ModelSerializer):
     """Read-only serializer for detail views (full fields)."""
-
+    category = CategorySerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     created_by = serializers.SerializerMethodField()
     updated_by = serializers.SerializerMethodField()
 
     class Meta:
         model = KnowledgeEntry
         fields = [
-            'id', 'category', 'title', 'slug', 'status', 'source',
+            'id', 'category', 'tags', 'title', 'slug', 'status', 'source',
             'sort_order', 'published_at', 'created_at', 'updated_at',
             'content', 'structured_data', 'created_by', 'updated_by',
         ]
@@ -40,9 +57,14 @@ class KnowledgeEntryDetailSerializer(serializers.ModelSerializer):
 class KnowledgeEntryWriteSerializer(serializers.Serializer):
     """Write serializer for create/update operations."""
 
-    category = serializers.ChoiceField(
-        choices=KnowledgeEntry.CATEGORY_CHOICES,
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
         required=True,
+    )
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        required=False,
     )
     title = serializers.CharField(max_length=255, required=True)
     content = serializers.CharField(required=False, default='', allow_blank=True)

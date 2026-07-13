@@ -1,46 +1,52 @@
 'use client';
 
-import { use, useEffect } from 'react';
+import { use, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PageContainer } from '@/components/layout';
 import { ErrorState } from '@/components/common';
-import { TextField, TextAreaField, FormSection } from '@/components/forms';
+import { TextField, FormSection } from '@/components/forms';
+import { EntitySelect, type Option } from '@/components/forms/entity-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-import { useKnowledgeDetail, useUpdateEntry } from '@/features/knowledge';
-import type { KBCategory } from '@/features/knowledge';
+import { useKnowledgeDetail, useUpdateEntry, useCategories, useTags, useCreateTag } from '@/features/knowledge';
+import { MarkdownEditor } from '@/features/knowledge/components/markdown-editor';
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
-  category: z.string().min(1, 'Category is required'),
+  category: z.number().min(1, 'Category is required'),
+  tags: z.array(z.number()).optional(),
   content: z.string(),
   sort_order: z.number().min(0).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
-const categories: { value: KBCategory; label: string }[] = [
-  { value: 'company', label: 'Company' },
-  { value: 'service', label: 'Service' },
-  { value: 'industry', label: 'Industry' },
-  { value: 'faq', label: 'FAQ' },
-  { value: 'contact', label: 'Contact' },
-  { value: 'technology', label: 'Technology' },
-  { value: 'general', label: 'General' },
-];
-
 export default function KnowledgeEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  
   const { data, isLoading, isError, refetch } = useKnowledgeDetail(id);
   const updateMutation = useUpdateEntry();
+  const createTagMutation = useCreateTag();
 
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<FormData>({
+  const { data: categoriesResponse, isLoading: isLoadingCategories } = useCategories();
+  const { data: tagsResponse, isLoading: isLoadingTags } = useTags();
+
+  const categoryOptions = useMemo(() => {
+    return categoriesResponse?.data?.map(c => ({ label: c.name, value: c.id })) || [];
+  }, [categoriesResponse]);
+
+  const tagOptions = useMemo(() => {
+    return tagsResponse?.data?.map(t => ({ label: t.name, value: t.id })) || [];
+  }, [tagsResponse]);
+
+  const { register, handleSubmit, control, reset, formState: { errors, isDirty }, setValue, getValues } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { title: '', content: '', tags: [] },
   });
 
   const entry = data?.data;
@@ -49,7 +55,8 @@ export default function KnowledgeEditPage({ params }: { params: Promise<{ id: st
     if (entry) {
       reset({
         title: entry.title,
-        category: entry.category,
+        category: entry.category?.id,
+        tags: entry.tags?.map(t => t.id) || [],
         content: entry.content,
         sort_order: entry.sort_order,
       });
@@ -58,9 +65,20 @@ export default function KnowledgeEditPage({ params }: { params: Promise<{ id: st
 
   const onSubmit = (formData: FormData) => {
     updateMutation.mutate(
-      { id, data: formData as Partial<{ category: KBCategory; title: string; content: string; sort_order: number }> },
+      { id, data: formData },
       { onSuccess: () => router.push(`/knowledge/${id}`) }
     );
+  };
+
+  const handleCreateTag = async (inputValue: string) => {
+    try {
+      const slug = inputValue.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const res = await createTagMutation.mutateAsync({ name: inputValue, slug });
+      const currentTags = getValues('tags') || [];
+      setValue('tags', [...currentTags, res.data.id], { shouldDirty: true });
+    } catch (err) {
+      console.error('Failed to create tag', err);
+    }
   };
 
   if (isLoading) return <PageContainer><Skeleton className="h-6 w-32 mb-4" /><Skeleton className="h-64 w-full" /></PageContainer>;
@@ -78,17 +96,57 @@ export default function KnowledgeEditPage({ params }: { params: Promise<{ id: st
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <FormSection title="Details">
             <TextField label="Title" error={errors.title?.message} required {...register('title')} />
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Category <span className="text-destructive">*</span></label>
-              <select {...register('category')} className="w-full h-9 rounded-md border bg-background px-3 text-sm">
-                {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-              {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
-            </div>
+            
+            <Controller
+              name="category"
+              control={control}
+              render={({ field }) => (
+                <EntitySelect
+                  label="Category"
+                  options={categoryOptions}
+                  isLoading={isLoadingCategories}
+                  value={categoryOptions.find(o => o.value === field.value) || null}
+                  onChange={(selected: Option | readonly Option[] | null) => field.onChange((selected as Option)?.value || null)}
+                  error={errors.category?.message}
+                  required
+                />
+              )}
+            />
+
+            <Controller
+              name="tags"
+              control={control}
+              render={({ field }) => (
+                <EntitySelect
+                  label="Tags"
+                  options={tagOptions}
+                  isLoading={isLoadingTags}
+                  isMulti
+                  isCreatable
+                  value={tagOptions.filter(o => (field.value || []).includes(o.value as number))}
+                  onChange={(selected: Option | readonly Option[] | null) => {
+                    const values = ((selected as Option[]) || []).map((v: Option) => v.value);
+                    field.onChange(values);
+                  }}
+                  onCreateOption={handleCreateTag}
+                  error={errors.tags?.message}
+                />
+              )}
+            />
           </FormSection>
 
-          <FormSection title="Content" description="Plain text content used by the chatbot">
-            <TextAreaField label="Content" rows={12} className="font-mono text-sm" {...register('content')} />
+          <FormSection title="Content" description="Markdown content used by the chatbot and preview">
+            <Controller
+              name="content"
+              control={control}
+              render={({ field }) => (
+                <MarkdownEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Write knowledge content in Markdown..."
+                />
+              )}
+            />
           </FormSection>
 
           <div className="flex gap-3">

@@ -36,7 +36,8 @@ const statusOptions: { value: KBStatus | ''; label: string }[] = [
 function getStatusVariant(status: string): 'active' | 'inactive' | 'pending' | 'error' {
   switch (status) {
     case 'published': return 'active';
-    case 'archived': return 'error';
+    case 'archived': return 'inactive';
+    case 'draft': return 'pending';
     default: return 'inactive';
   }
 }
@@ -73,7 +74,7 @@ export default function KnowledgePage() {
       </div>
     )},
     { key: 'category', header: 'Category', render: (row) => (
-      <span className="text-xs capitalize bg-muted px-2 py-0.5 rounded">{row.category}</span>
+      <span className="text-xs capitalize bg-muted px-2 py-0.5 rounded">{row.category?.name || '-'}</span>
     ), className: 'hidden md:table-cell' },
     { key: 'status', header: 'Status', render: (row) => (
       <StatusBadge status={getStatusVariant(row.status)} label={row.status} />

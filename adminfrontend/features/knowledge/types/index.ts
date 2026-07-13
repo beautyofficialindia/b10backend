@@ -1,6 +1,34 @@
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  color: string;
+  icon: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+  is_active: boolean;
+}
+
 export interface KnowledgeEntry {
   id: string;
-  category: KBCategory;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+    color: string;
+  } | null;
+  tags: {
+    id: number;
+    name: string;
+    slug: string;
+  }[];
   title: string;
   slug: string;
   status: KBStatus;
@@ -19,6 +47,7 @@ export interface KnowledgeEntryDetail extends KnowledgeEntry {
 }
 
 export type KBStatus = 'draft' | 'published' | 'archived';
+// Deprecated: Used only for backward compatibility if needed, prefer `Category` interface
 export type KBCategory = 'company' | 'service' | 'industry' | 'faq' | 'contact' | 'technology' | 'general';
 
 export interface KBListResponse {
@@ -29,7 +58,7 @@ export interface KBListResponse {
 
 export interface KBFilters {
   search?: string;
-  category?: KBCategory | '';
+  category?: string; // category slug
   status?: KBStatus | '';
   ordering?: string;
   page?: number;
@@ -37,8 +66,10 @@ export interface KBFilters {
 }
 
 export interface KBCreatePayload {
-  category: KBCategory;
+  category: number; // category ID
+  tags?: number[]; // array of tag IDs
   title: string;
   content: string;
   sort_order?: number;
+  status?: KBStatus;
 }

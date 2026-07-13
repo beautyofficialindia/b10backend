@@ -1,8 +1,8 @@
-from .knowledge_loader import KnowledgeLoader
+from .knowledge_provider import KnowledgeProviderFactory
 
 class PromptBuilder:
     def __init__(self):
-        self.knowledge_loader = KnowledgeLoader()
+        self.knowledge_provider = KnowledgeProviderFactory.get_provider()
 
     def build_system_prompt(self, user_message, lead_status=None, missing_fields=None, lead_summary=None):
         # Keyword-based intent classification
@@ -32,7 +32,7 @@ class PromptBuilder:
             load_services = True
             load_faq = True
             
-        knowledge_text = self.knowledge_loader.get_scoped_knowledge_as_text(
+        knowledge_text = self.knowledge_provider.get_scoped_knowledge_as_text(
             company=load_company,
             services=load_services,
             industries=load_industries,

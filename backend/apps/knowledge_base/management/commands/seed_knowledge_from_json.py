@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 
-from apps.knowledge_base.models import KnowledgeEntry
+from apps.knowledge_base.models import KnowledgeEntry, Category
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +66,11 @@ class Command(BaseCommand):
         return 1, 0  # created=1, skipped=0
 
     def _seed_company(self, data):
-        """Single entry: category='company', title='Company Info'."""
+        """Single entry: category=company_category, title='Company Info'."""
         content = data.get('description', '')
         return self._create_or_skip(
             title='Company Info',
-            category='company',
+            category=company_category,
             content=content,
             structured_data=data,
         )
@@ -85,7 +85,7 @@ class Command(BaseCommand):
                 structured['technologies'] = service['technologies']
             c, s = self._create_or_skip(
                 title=service.get('name', 'Unnamed Service'),
-                category='service',
+                category=service_category,
                 content=service.get('description', ''),
                 structured_data=structured,
             )
@@ -114,7 +114,7 @@ class Command(BaseCommand):
         for faq in data:
             c, s = self._create_or_skip(
                 title=faq.get('question', 'Unnamed FAQ'),
-                category='faq',
+                category=faq_category,
                 content=faq.get('answer', ''),
             )
             created += c

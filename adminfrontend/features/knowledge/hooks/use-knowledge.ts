@@ -24,6 +24,22 @@ export function useKnowledgeDetail(id: string) {
   });
 }
 
+export function useCategories() {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: () => knowledgeApi.getCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useTags() {
+  return useQuery({
+    queryKey: ['tags'],
+    queryFn: () => knowledgeApi.getTags(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateEntry() {
   const qc = useQueryClient();
   return useMutation({
@@ -65,10 +81,40 @@ export function useArchiveEntry() {
   });
 }
 
+export function useUnpublishEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeApi.unpublish(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', id] });
+      qc.invalidateQueries({ queryKey: ['knowledge'] });
+    },
+  });
+}
+
+export function useRestoreEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeApi.restore(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', id] });
+      qc.invalidateQueries({ queryKey: ['knowledge'] });
+    },
+  });
+}
+
 export function useDeleteEntry() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => knowledgeApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledge'] }),
+  });
+}
+
+export function useCreateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; slug: string }) => knowledgeApi.createTag(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tags'] }),
   });
 }

@@ -1,6 +1,7 @@
 import json
 
 from django.db.models import Q
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.utils import timezone
 
 from apps.knowledge_base.models import KnowledgeEntry
@@ -12,7 +13,7 @@ ALLOWED_ORDERING_VALUES = [
     'title', '-title',
 ]
 
-ALLOWED_WRITABLE_FIELDS = ['category', 'title', 'content', 'structured_data', 'sort_order']
+ALLOWED_WRITABLE_FIELDS = ['category', 'tags', 'title', 'content', 'structured_data', 'sort_order']
 
 SECTION_MAP = [
     ('company', 'company', 'Company Information'),
@@ -32,22 +33,26 @@ class KnowledgeService:
         Return a filtered QuerySet of KnowledgeEntry records.
         By default excludes soft-deleted entries.
         """
-        qs = KnowledgeEntry.objects.all()
+        qs = KnowledgeEntry.objects.select_related('category').prefetch_related('tags')
 
         if not include_deleted:
             qs = qs.filter(is_deleted=False)
 
         if category:
-            qs = qs.filter(category=category)
+            qs = qs.filter(category__slug=category)
 
         if status:
             qs = qs.filter(status=status)
 
         if search and search.strip():
+            # TODO: Add searching across Category and Tag names in future phases
             search = search.strip()
-            qs = qs.filter(Q(title__icontains=search) | Q(content__icontains=search))
-
-        if ordering and ordering in ALLOWED_ORDERING_VALUES:
+            vector = SearchVector('title', weight='A') + SearchVector('content', weight='B')
+            query = SearchQuery(search)
+            qs = qs.annotate(
+                search_rank=SearchRank(vector, query)
+            ).filter(search_rank__gte=0.01).order_by('-search_rank')
+        elif ordering and ordering in ALLOWED_ORDERING_VALUES:
             qs = qs.order_by(ordering)
 
         return qs
@@ -57,7 +62,7 @@ class KnowledgeService:
         """
         Return a single KnowledgeEntry or raise KnowledgeEntry.DoesNotExist.
         """
-        qs = KnowledgeEntry.objects.all()
+        qs = KnowledgeEntry.objects.select_related('category').prefetch_related('tags')
         if not include_deleted:
             qs = qs.filter(is_deleted=False)
         return qs.get(pk=pk)
@@ -72,6 +77,7 @@ class KnowledgeService:
         if not data.get('title'):
             raise ValueError("The 'title' field is required.")
 
+        tags = data.pop('tags', [])
         entry = KnowledgeEntry(
             category=data['category'],
             title=data['title'],
@@ -83,6 +89,8 @@ class KnowledgeService:
             created_by=user,
         )
         entry.save()
+        if tags:
+            entry.tags.set(tags)
         return entry
 
     @staticmethod
@@ -94,11 +102,14 @@ class KnowledgeService:
             if key not in ALLOWED_WRITABLE_FIELDS:
                 raise ValueError(f"Unrecognized or non-writable field: '{key}'")
 
+        tags = data.pop('tags', None)
         for key, value in data.items():
             setattr(entry, key, value)
 
         entry.updated_by = user
         entry.save()
+        if tags is not None:
+            entry.tags.set(tags)
         return entry
 
     @staticmethod
@@ -151,7 +162,7 @@ class KnowledgeService:
         Returns empty string if no entries.
         """
         entries = KnowledgeEntry.objects.filter(
-            category=category,
+            category__slug=category,
             status='published',
             is_deleted=False,
         ).order_by('sort_order', 'created_at')
@@ -178,7 +189,7 @@ class KnowledgeService:
             if not flags[flag_key]:
                 continue
             entries = KnowledgeEntry.objects.filter(
-                category=category_value,
+                category__slug=category_value,
                 status='published',
                 is_deleted=False,
             ).order_by('sort_order', 'created_at')

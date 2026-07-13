@@ -1,3 +1,3 @@
-export { useKnowledgeList, useKnowledgeDetail, useCreateEntry, useUpdateEntry, usePublishEntry, useArchiveEntry, useDeleteEntry } from './hooks/use-knowledge';
+export * from './hooks';
 export { knowledgeApi } from './api';
-export type { KnowledgeEntry, KnowledgeEntryDetail, KBStatus, KBCategory, KBFilters, KBCreatePayload } from './types';
+export type { KnowledgeEntry, KnowledgeEntryDetail, KBStatus, KBCategory, KBFilters, KBCreatePayload, Category, Tag } from './types';

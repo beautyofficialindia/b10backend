@@ -15,7 +15,7 @@ from .serializers import (
 )
 from .models import ConversationSession, Message, Feedback
 from .services.chat_service import ChatService
-from .services.knowledge_loader import KnowledgeLoader
+from .services.knowledge_provider import KnowledgeProviderFactory
 from apps.analytics.services.analytics_service import AnalyticsService
 
 
@@ -130,7 +130,7 @@ class CompanyAPIView(APIView):
     permission_classes = []
 
     def get(self, request, *args, **kwargs):
-        data = KnowledgeLoader().get_company_info() or {}
+        data = KnowledgeProviderFactory.get_provider().get_category_data('company') or {}
         return success_response(data=data)
 
 
@@ -139,7 +139,7 @@ class ServicesAPIView(APIView):
     permission_classes = []
 
     def get(self, request, *args, **kwargs):
-        services = KnowledgeLoader().get_services() or []
+        services = KnowledgeProviderFactory.get_provider().get_category_data('services') or []
         industry = request.query_params.get('industry')
         if industry:
             services = [
@@ -155,7 +155,7 @@ class ServiceDetailAPIView(APIView):
     permission_classes = []
 
     def get(self, request, slug, *args, **kwargs):
-        services = KnowledgeLoader().get_services() or []
+        services = KnowledgeProviderFactory.get_provider().get_category_data('services') or []
         for service in services:
             identifiers = {service.get('id'), service.get('slug'), str(service.get('name', '')).lower().replace(' ', '-')}
             if slug in identifiers:
@@ -168,7 +168,7 @@ class FAQAPIView(APIView):
     permission_classes = []
 
     def get(self, request, *args, **kwargs):
-        return success_response(data=KnowledgeLoader().get_faq() or [])
+        return success_response(data=KnowledgeProviderFactory.get_provider().get_category_data('faq') or [])
 
 
 class HealthAPIView(APIView):

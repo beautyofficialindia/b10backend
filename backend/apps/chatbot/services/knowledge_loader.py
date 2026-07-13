@@ -3,6 +3,12 @@ import json
 from django.conf import settings
 
 class KnowledgeLoader:
+    """
+    Legacy JSON knowledge provider.
+    
+    Retained for backwards compatibility and emergency rollback.
+    New deployments should use DatabaseKnowledgeProvider.
+    """
     def __init__(self, knowledge_dir=None):
         if knowledge_dir is None:
             self.knowledge_dir = os.path.join(settings.BASE_DIR.parent, 'knowledge')
