@@ -33,6 +33,38 @@ class Tag(models.Model):
         return self.name
 
 
+class KnowledgeEntryVersion(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    knowledge_entry = models.ForeignKey(
+        'KnowledgeEntry',
+        on_delete=models.CASCADE,
+        related_name='versions'
+    )
+    version_number = models.PositiveIntegerField()
+    title = models.CharField(max_length=255, blank=False, null=False)
+    content = models.TextField(blank=False, null=False, default='')
+    structured_data = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20)
+    category_snapshot = models.JSONField(default=dict, blank=True)
+    tags_snapshot = models.JSONField(default=list, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='kb_versions_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    change_summary = models.CharField(max_length=255, default='No summary provided')
+
+    class Meta:
+        ordering = ['-version_number']
+        unique_together = (('knowledge_entry', 'version_number'),)
+
+    def __str__(self):
+        return f"[v{self.version_number}] {self.title}"
+
+
 class KnowledgeEntry(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
@@ -106,11 +138,4 @@ class KnowledgeEntry(models.Model):
         super().save(*args, **kwargs)
 
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-@receiver(post_save, sender=KnowledgeEntry)
-def knowledge_entry_post_save(sender, instance, created, **kwargs):
-    # Future versioning hook (Phase 10.4)
-    pass
 

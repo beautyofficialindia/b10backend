@@ -5,6 +5,7 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.utils import timezone
 
 from apps.knowledge_base.models import KnowledgeEntry
+from apps.knowledge_base.services.version_service import KnowledgeVersionService
 
 
 ALLOWED_ORDERING_VALUES = [
@@ -26,6 +27,14 @@ SECTION_MAP = [
 
 class KnowledgeService:
     """Service class for all Knowledge Base data operations."""
+
+    @staticmethod
+    def _save_and_version(entry, user, summary=None, tags=None):
+        """Helper to save the entry, apply tags if any, and create a version snapshot."""
+        entry.save()
+        if tags is not None:
+            entry.tags.set(tags)
+        KnowledgeVersionService.create_version(entry, user, summary)
 
     @staticmethod
     def list_entries(category=None, search=None, status=None, include_deleted=False, ordering=None):
@@ -68,7 +77,7 @@ class KnowledgeService:
         return qs.get(pk=pk)
 
     @staticmethod
-    def create_entry(data, user):
+    def create_entry(data, user, summary="Created initial version"):
         """
         Create a new KnowledgeEntry. Raises ValueError if category or title missing.
         """
@@ -77,7 +86,10 @@ class KnowledgeService:
         if not data.get('title'):
             raise ValueError("The 'title' field is required.")
 
-        tags = data.pop('tags', [])
+        tags = data.pop('tags', None)
+        if tags is None:
+            tags = []
+            
         entry = KnowledgeEntry(
             category=data['category'],
             title=data['title'],
@@ -88,13 +100,11 @@ class KnowledgeService:
             status='draft',
             created_by=user,
         )
-        entry.save()
-        if tags:
-            entry.tags.set(tags)
+        KnowledgeService._save_and_version(entry, user, summary, tags=tags)
         return entry
 
     @staticmethod
-    def update_entry(entry, data, user):
+    def update_entry(entry, data, user, summary="Updated entry"):
         """
         Update allowed fields on an existing entry. Raises ValueError for unrecognized fields.
         """
@@ -107,51 +117,49 @@ class KnowledgeService:
             setattr(entry, key, value)
 
         entry.updated_by = user
-        entry.save()
-        if tags is not None:
-            entry.tags.set(tags)
+        KnowledgeService._save_and_version(entry, user, summary, tags=tags)
         return entry
 
     @staticmethod
-    def delete_entry(entry, user):
+    def delete_entry(entry, user, summary="Deleted entry (Soft Delete)"):
         """Soft-delete: set is_deleted=True, deleted_at, updated_by."""
         entry.is_deleted = True
         entry.deleted_at = timezone.now()
         entry.updated_by = user
-        entry.save()
+        KnowledgeService._save_and_version(entry, user, summary)
 
     @staticmethod
-    def restore_entry(entry, user):
+    def restore_entry(entry, user, summary="Restored deleted entry"):
         """Restore a soft-deleted entry."""
         entry.is_deleted = False
         entry.deleted_at = None
         entry.updated_by = user
-        entry.save()
+        KnowledgeService._save_and_version(entry, user, summary)
         return entry
 
     @staticmethod
-    def publish_entry(entry, user):
+    def publish_entry(entry, user, summary="Published entry"):
         """Set status to published. published_at set only if currently None."""
         entry.status = 'published'
         entry.updated_by = user
         # published_at is auto-set in model save() if None
-        entry.save()
+        KnowledgeService._save_and_version(entry, user, summary)
         return entry
 
     @staticmethod
-    def unpublish_entry(entry, user):
+    def unpublish_entry(entry, user, summary="Unpublished entry"):
         """Set status to draft. published_at is NOT cleared."""
         entry.status = 'draft'
         entry.updated_by = user
-        entry.save()
+        KnowledgeService._save_and_version(entry, user, summary)
         return entry
 
     @staticmethod
-    def archive_entry(entry, user):
+    def archive_entry(entry, user, summary="Archived entry"):
         """Set status to archived. published_at is NOT cleared."""
         entry.status = 'archived'
         entry.updated_by = user
-        entry.save()
+        KnowledgeService._save_and_version(entry, user, summary)
         return entry
 
     @staticmethod

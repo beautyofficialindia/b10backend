@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.knowledge_base.models import KnowledgeEntry, Category, Tag
+from apps.knowledge_base.models import KnowledgeEntry, Category, Tag, KnowledgeEntryVersion
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -75,6 +75,7 @@ class KnowledgeEntryWriteSerializer(serializers.Serializer):
         required=False,
         default='manual',
     )
+    change_summary = serializers.CharField(required=False, default='', allow_blank=True)
 
     def __init__(self, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -90,3 +91,37 @@ class KnowledgeEntryWriteSerializer(serializers.Serializer):
             submitted_keys = set(self.initial_data.keys())
             attrs = {k: v for k, v in attrs.items() if k in submitted_keys}
         return attrs
+
+
+class KnowledgeEntryVersionListSerializer(serializers.ModelSerializer):
+    """Serializer for listing versions of a knowledge entry."""
+    created_by = serializers.SerializerMethodField()
+
+    class Meta:
+        model = KnowledgeEntryVersion
+        fields = [
+            'id', 'knowledge_entry', 'version_number', 'status',
+            'created_by', 'created_at', 'change_summary'
+        ]
+        read_only_fields = fields
+
+    def get_created_by(self, obj):
+        return obj.created_by.username if obj.created_by else None
+
+
+class KnowledgeEntryVersionDetailSerializer(serializers.ModelSerializer):
+    """Serializer for retrieving a specific version detail."""
+    created_by = serializers.SerializerMethodField()
+
+    class Meta:
+        model = KnowledgeEntryVersion
+        fields = [
+            'id', 'knowledge_entry', 'version_number', 'title', 'content',
+            'structured_data', 'status', 'category_snapshot', 'tags_snapshot',
+            'created_by', 'created_at', 'change_summary'
+        ]
+        read_only_fields = fields
+
+    def get_created_by(self, obj):
+        return obj.created_by.username if obj.created_by else None
+

@@ -17,6 +17,7 @@ import {
 } from '@/features/knowledge';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { KnowledgeHistory } from '@/features/knowledge/components/knowledge-history';
 
 function getStatusVariant(status: string): 'active' | 'inactive' | 'pending' | 'error' {
   switch (status) {
@@ -113,8 +114,8 @@ export default function KnowledgeDetailPage({ params }: { params: Promise<{ id: 
         <TabsList className="mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="history" disabled className="gap-1.5">
-            <History className="h-3.5 w-3.5" />History (Coming Soon)
+          <TabsTrigger value="history" className="gap-1.5">
+            <History className="h-3.5 w-3.5" />History
           </TabsTrigger>
         </TabsList>
         
@@ -168,6 +169,10 @@ export default function KnowledgeDetailPage({ params }: { params: Promise<{ id: 
               )}
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <KnowledgeHistory entryId={id} />
         </TabsContent>
       </Tabs>
     </PageContainer>

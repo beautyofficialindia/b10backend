@@ -118,3 +118,31 @@ export function useCreateTag() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tags'] }),
   });
 }
+
+export function useKnowledgeVersions(entryId: string) {
+  return useQuery({
+    queryKey: ['knowledge', entryId, 'versions'],
+    queryFn: () => knowledgeApi.getVersions(entryId),
+    enabled: !!entryId,
+  });
+}
+
+export function useKnowledgeVersion(versionId: string) {
+  return useQuery({
+    queryKey: ['knowledge', 'version', versionId],
+    queryFn: () => knowledgeApi.getVersion(versionId),
+    enabled: !!versionId,
+  });
+}
+
+export function useRestoreKnowledgeVersion(entryId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (versionId: string) => knowledgeApi.restoreVersion(versionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', entryId] });
+      qc.invalidateQueries({ queryKey: ['knowledge', entryId, 'versions'] });
+      qc.invalidateQueries({ queryKey: ['knowledge'] });
+    },
+  });
+}

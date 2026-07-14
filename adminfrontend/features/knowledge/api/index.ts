@@ -1,6 +1,6 @@
 import api from '@/lib/axios';
 import { buildQueryParams } from '@/lib/utils/build-query-params';
-import type { KBListResponse, KBFilters, KnowledgeEntryDetail, KBCreatePayload, Category, Tag } from '../types';
+import type { KBListResponse, KBFilters, KnowledgeEntryDetail, KBCreatePayload, Category, Tag, KnowledgeVersion, KnowledgeVersionDetail } from '../types';
 
 export const knowledgeApi = {
   list: async (filters: KBFilters = {}, signal?: AbortSignal): Promise<KBListResponse> => {
@@ -60,6 +60,21 @@ export const knowledgeApi = {
 
   createTag: async (data: { name: string; slug: string }): Promise<{ data: Tag }> => {
     const res = await api.post('/admin/kb/tags/', data);
+    return res.data;
+  },
+
+  getVersions: async (entryId: string): Promise<{ data: KnowledgeVersion[] }> => {
+    const res = await api.get(`/admin/kb/entries/${entryId}/versions/`);
+    return res.data;
+  },
+
+  getVersion: async (versionId: string): Promise<{ data: KnowledgeVersionDetail }> => {
+    const res = await api.get(`/admin/kb/versions/${versionId}/`);
+    return res.data;
+  },
+
+  restoreVersion: async (versionId: string): Promise<{ data: KnowledgeEntryDetail }> => {
+    const res = await api.post(`/admin/kb/versions/${versionId}/restore/`);
     return res.data;
   }
 };

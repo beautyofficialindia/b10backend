@@ -103,7 +103,7 @@ class KnowledgeServiceTests(TestCase):
         self.assertEqual(entries.count(), 2)
 
     def test_list_entries_category_filter(self):
-        entries = KnowledgeService.list_entries(category=cls.category.id)
+        entries = KnowledgeService.list_entries(category='faq')
         self.assertEqual(entries.count(), 1)
         self.assertEqual(entries.first().pk, self.entry1.pk)
 
@@ -675,3 +675,78 @@ class ChatbotCompatibilityTests(TestCase):
         self.assertLess(services_pos, industries_pos)
         self.assertLess(industries_pos, faq_pos)
         self.assertLess(faq_pos, contact_pos)
+
+
+class KnowledgeVersionServiceTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='versionadmin', password='pw')
+        self.category = Category.objects.create(name='Version Cat', slug='version-cat')
+        self.tag1 = Tag.objects.create(name='VTag1', slug='vtag1')
+        
+    def test_version_created_on_mutation(self):
+        # Create
+        entry = KnowledgeService.create_entry(
+            {'category': self.category, 'title': 'V1 Title', 'content': 'V1 Content', 'tags': [self.tag1]},
+            self.user,
+            'Initial create'
+        )
+        self.assertEqual(entry.versions.count(), 1)
+        v1 = entry.versions.first()
+        self.assertEqual(v1.version_number, 1)
+        self.assertEqual(v1.change_summary, 'Initial create')
+        self.assertEqual(v1.title, 'V1 Title')
+        
+        # Snapshot check
+        self.assertEqual(v1.category_snapshot['slug'], 'version-cat')
+        self.assertEqual(len(v1.tags_snapshot), 1)
+        self.assertEqual(v1.tags_snapshot[0]['slug'], 'vtag1')
+
+        # Update
+        KnowledgeService.update_entry(
+            entry,
+            {'title': 'V2 Title', 'content': 'V2 Content'},
+            self.user,
+            'Updated title'
+        )
+        self.assertEqual(entry.versions.count(), 2)
+        v2 = entry.versions.order_by('-version_number').first()
+        self.assertEqual(v2.version_number, 2)
+        self.assertEqual(v2.title, 'V2 Title')
+        
+        # Publish
+        KnowledgeService.publish_entry(entry, self.user)
+        self.assertEqual(entry.versions.count(), 3)
+        v3 = entry.versions.order_by('-version_number').first()
+        self.assertEqual(v3.status, 'published')
+        self.assertEqual(v3.change_summary, 'Published entry')
+
+    def test_restore_version(self):
+        entry = KnowledgeService.create_entry(
+            {'category': self.category, 'title': 'V1', 'content': 'Content 1'},
+            self.user,
+            'Initial'
+        )
+        v1 = entry.versions.first()
+        
+        KnowledgeService.update_entry(
+            entry,
+            {'title': 'V2', 'content': 'Content 2'},
+            self.user,
+            'Second'
+        )
+        self.assertEqual(entry.title, 'V2')
+        self.assertEqual(entry.versions.count(), 2)
+        
+        # Restore V1
+        from apps.knowledge_base.services.version_service import KnowledgeVersionService
+        KnowledgeVersionService.restore_version(v1, self.user)
+        
+        entry.refresh_from_db()
+        self.assertEqual(entry.title, 'V1')
+        self.assertEqual(entry.content, 'Content 1')
+        
+        # Should have 3 versions now
+        self.assertEqual(entry.versions.count(), 3)
+        v3 = entry.versions.order_by('-version_number').first()
+        self.assertEqual(v3.title, 'V1')
+        self.assertEqual(v3.change_summary, 'Restored from Version 1')

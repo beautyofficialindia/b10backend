@@ -73,3 +73,28 @@ export interface KBCreatePayload {
   sort_order?: number;
   status?: KBStatus;
 }
+
+export interface KnowledgeVersion {
+  id: string;
+  knowledge_entry: string;
+  version_number: number;
+  title: string;
+  status: KBStatus;
+  created_at: string;
+  created_by: {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  change_summary: string;
+}
+
+export interface KnowledgeVersionDetail extends KnowledgeVersion {
+  content: string;
+  structured_data: Record<string, unknown>;
+  category_snapshot: Record<string, unknown> | null;
+  tags_snapshot: Record<string, unknown>[] | null;
+}
+

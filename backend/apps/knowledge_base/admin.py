@@ -3,7 +3,7 @@ from django.db.models import F, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from apps.knowledge_base.models import KnowledgeEntry
+from apps.knowledge_base.models import KnowledgeEntry, Category, Tag, KnowledgeEntryVersion
 
 
 @admin.register(KnowledgeEntry)
@@ -58,3 +58,27 @@ class KnowledgeAdmin(admin.ModelAdmin):
             updated_by=request.user,
         )
         self.message_user(request, f"{updated} entries restored.")
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'sort_order', 'is_active')
+    search_fields = ('name', 'slug')
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'is_active')
+    search_fields = ('name', 'slug')
+
+
+@admin.register(KnowledgeEntryVersion)
+class KnowledgeEntryVersionAdmin(admin.ModelAdmin):
+    list_display = ('knowledge_entry', 'version_number', 'status', 'created_at', 'created_by')
+    list_filter = ('status', 'created_at')
+    search_fields = ('title', 'content', 'change_summary')
+    readonly_fields = [
+        'id', 'knowledge_entry', 'version_number', 'title', 'content',
+        'structured_data', 'status', 'category_snapshot', 'tags_snapshot',
+        'created_by', 'created_at', 'change_summary'
+    ]

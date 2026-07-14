@@ -4,15 +4,18 @@ from rest_framework.throttling import AnonRateThrottle
 from apps.accounts.permissions import IsAdminUser
 from rest_framework import viewsets
 
-from apps.knowledge_base.models import KnowledgeEntry, Category, Tag
+from apps.knowledge_base.models import KnowledgeEntry, Category, Tag, KnowledgeEntryVersion
 from apps.knowledge_base.serializers import (
     KnowledgeEntryDetailSerializer,
     KnowledgeEntryListSerializer,
     KnowledgeEntryWriteSerializer,
     CategorySerializer,
     TagSerializer,
+    KnowledgeEntryVersionListSerializer,
+    KnowledgeEntryVersionDetailSerializer,
 )
 from apps.knowledge_base.services.knowledge_service import KnowledgeService
+from apps.knowledge_base.services.version_service import KnowledgeVersionService
 from common.pagination import StandardPageNumberPagination
 from common.responses import error_response, success_response
 
@@ -121,10 +124,13 @@ class AdminKnowledgeListCreateView(APIView):
                 status=400,
             )
 
+        summary = serializer.validated_data.pop('change_summary', None)
+
         try:
             entry = KnowledgeService.create_entry(
                 data=serializer.validated_data,
                 user=request.user,
+                summary=summary or "Created initial version"
             )
         except ValueError as e:
             return error_response(
@@ -175,11 +181,14 @@ class AdminKnowledgeDetailView(APIView):
                 status=400,
             )
 
+        summary = serializer.validated_data.pop('change_summary', None)
+
         try:
             entry = KnowledgeService.update_entry(
                 entry=entry,
                 data=serializer.validated_data,
                 user=request.user,
+                summary=summary or "Updated entry"
             )
         except ValueError as e:
             return error_response(
@@ -272,5 +281,73 @@ class AdminKnowledgeRestoreView(APIView):
             )
 
         entry = KnowledgeService.restore_entry(entry, request.user)
+        serializer = KnowledgeEntryDetailSerializer(entry)
+        return success_response(data=serializer.data)
+
+
+# ─── Version Views ──────────────────────────────────────────────────────────────
+
+class AdminKnowledgeVersionListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, entry_id):
+        try:
+            entry = KnowledgeEntry.objects.get(pk=entry_id)
+        except KnowledgeEntry.DoesNotExist:
+            return error_response(
+                code='NOT_FOUND_RESOURCE',
+                message='Knowledge entry not found.',
+                status=404,
+            )
+            
+        versions = entry.versions.all()
+        paginator = StandardPageNumberPagination()
+        page = paginator.paginate_queryset(versions, request)
+        if page is not None:
+            serializer = KnowledgeEntryVersionListSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = KnowledgeEntryVersionListSerializer(versions, many=True)
+        return success_response(data=serializer.data)
+
+
+class AdminKnowledgeVersionDetailView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, pk):
+        try:
+            version = KnowledgeEntryVersion.objects.get(pk=pk)
+        except KnowledgeEntryVersion.DoesNotExist:
+            return error_response(
+                code='NOT_FOUND_RESOURCE',
+                message='Version not found.',
+                status=404,
+            )
+        serializer = KnowledgeEntryVersionDetailSerializer(version)
+        return success_response(data=serializer.data)
+
+
+class AdminKnowledgeVersionRestoreView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            version = KnowledgeEntryVersion.objects.get(pk=pk)
+        except KnowledgeEntryVersion.DoesNotExist:
+            return error_response(
+                code='NOT_FOUND_RESOURCE',
+                message='Version not found.',
+                status=404,
+            )
+            
+        try:
+            entry = KnowledgeVersionService.restore_version(version, request.user)
+        except Exception as e:
+            return error_response(
+                code='RESTORE_ERROR',
+                message=str(e),
+                status=400,
+            )
+            
         serializer = KnowledgeEntryDetailSerializer(entry)
         return success_response(data=serializer.data)

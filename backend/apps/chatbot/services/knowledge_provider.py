@@ -84,7 +84,7 @@ class DatabaseKnowledgeProvider(BaseKnowledgeProvider):
             return None
             
         entries = KnowledgeEntry.objects.filter(
-            category=model_category,
+            category__slug=model_category,
             status='published',
             is_deleted=False
         ).order_by('sort_order', 'created_at')
