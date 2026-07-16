@@ -8,10 +8,12 @@ import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
+import { useFeatureFlags } from '@/features/platform-settings/providers';
 
 export function MobileSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { flags } = useFeatureFlags();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -25,7 +27,9 @@ export function MobileSidebar() {
         </div>
         <ScrollArea className="flex-1 py-3">
           <nav className="flex flex-col gap-1 px-2">
-            {navigation.map((item) => {
+            {navigation
+              .filter((item) => !item.featureFlag || flags[item.featureFlag] !== false)
+              .map((item) => {
               const isActive = pathname.startsWith(item.href);
               const Icon = item.icon;
               return (

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
+import { MaintenanceBanner } from '@/features/platform-settings/components/maintenance-banner';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -26,6 +27,7 @@ export function AppShell({ children }: AppShellProps) {
             [data-collapsed="false"] { margin-left: 256px !important; }
           }
         `}</style>
+        <MaintenanceBanner />
         <Header />
         <main className="flex-1">{children}</main>
       </div>

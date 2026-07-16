@@ -2,6 +2,7 @@
 
 import { PageContainer, PageHeader } from '@/components/layout';
 import { PermissionGuard } from '@/features/auth';
+import { FeatureGuard } from '@/features/platform-settings/components/feature-guard';
 import { StatCard, MetricCard, SkeletonCard, ErrorState } from '@/components/common';
 import { BarChartCard, LineChartCard } from '@/components/charts';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export default function AnalyticsPage() {
   const timelineEntries = timeline.data ? Object.entries(timeline.data).slice(-14) : [];
 
   return (
+    <FeatureGuard feature="ENABLE_ANALYTICS">
     <PermissionGuard permissions={['analytics.view_analyticsevent']}>
     <PageContainer>
       <PageHeader title="Analytics" description="Platform performance metrics and insights">
@@ -205,5 +207,6 @@ export default function AnalyticsPage() {
       </div>
     </PageContainer>
     </PermissionGuard>
+    </FeatureGuard>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth, PermissionGuard } from '@/features/auth';
+import { useFeatureFlags } from '@/features/platform-settings/providers';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -21,6 +22,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { flags } = useFeatureFlags();
   
   const initials = user
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.username[0].toUpperCase()
@@ -59,7 +61,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-3">
         <nav className="flex flex-col gap-1 px-2">
-          {navigation.map((item) => {
+          {navigation
+            .filter((item) => !item.featureFlag || flags[item.featureFlag] !== false)
+            .map((item) => {
             const isActive = pathname.startsWith(item.href);
             const Icon = item.icon;
 

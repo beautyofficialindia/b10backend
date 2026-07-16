@@ -5,6 +5,7 @@ import { QueryProvider } from '@/providers/query-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { FeatureFlagsProvider } from '@/features/platform-settings/providers';
 
 const geistSans = Geist({
   variable: '--font-sans',
@@ -31,10 +32,12 @@ export default function RootLayout({
       <body className="min-h-full font-sans antialiased">
         <ThemeProvider>
           <QueryProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
+            <FeatureFlagsProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </FeatureFlagsProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>
