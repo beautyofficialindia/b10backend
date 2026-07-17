@@ -44,4 +44,5 @@ urlpatterns = [
     path('api/v1/admin/users/', include('apps.user_management.urls')),
     path('api/v1/admin/roles/', include('apps.role_management.urls')),
     path('api/v1/admin/settings/', include('apps.platform_settings.urls')),
+    path('api/v1/admin/notifications/', include('apps.notifications.urls')),
 ]

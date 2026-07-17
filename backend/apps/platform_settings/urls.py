@@ -7,7 +7,8 @@ from .views import (
     InitializeSettingsAPIView,
     ResetSettingsAPIView,
     RefreshSettingsCacheAPIView,
-    ClearSettingsCacheAPIView
+    ClearSettingsCacheAPIView,
+    AdminPlatformHealthAPIView
 )
 
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
     path('reset/', ResetSettingsAPIView.as_view(), name='settings-reset'),
     path('cache/refresh/', RefreshSettingsCacheAPIView.as_view(), name='settings-cache-refresh'),
     path('cache/clear/', ClearSettingsCacheAPIView.as_view(), name='settings-cache-clear'),
+    path('health/', AdminPlatformHealthAPIView.as_view(), name='platform-health'),
     # This must be last to avoid catching 'groups', 'detail', etc.
     path('<str:group>/', AdminSettingsByGroupAPIView.as_view(), name='settings-by-group'),
 ]

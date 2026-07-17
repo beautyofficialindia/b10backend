@@ -8,6 +8,22 @@ from apps.knowledge_base.models import KnowledgeEntry
 from apps.knowledge_base.services.version_service import KnowledgeVersionService
 
 
+def _notify_knowledge(title, message, type_, entry_id, actor=None):
+    """Fire-and-forget admin notification for knowledge base events."""
+    try:
+        from apps.notifications.services import NotificationService
+        NotificationService.create(
+            title=title,
+            message=message,
+            type=type_,
+            category='KNOWLEDGE',
+            action_url=f'/knowledge/{entry_id}',
+            actor=actor,
+        )
+    except Exception:
+        pass
+
+
 ALLOWED_ORDERING_VALUES = [
     'created_at', '-created_at',
     'sort_order', '-sort_order',
@@ -135,6 +151,13 @@ class KnowledgeService:
         entry.deleted_at = None
         entry.updated_by = user
         KnowledgeService._save_and_version(entry, user, summary)
+        _notify_knowledge(
+            title='Knowledge Article Restored',
+            message=f"'{entry.title}' has been restored from the deleted articles.",
+            type_='NOTICE',
+            entry_id=entry.pk,
+            actor=user,
+        )
         return entry
 
     @staticmethod
@@ -144,6 +167,13 @@ class KnowledgeService:
         entry.updated_by = user
         # published_at is auto-set in model save() if None
         KnowledgeService._save_and_version(entry, user, summary)
+        _notify_knowledge(
+            title='Knowledge Article Published',
+            message=f"'{entry.title}' has been published to the knowledge base.",
+            type_='SUCCESS',
+            entry_id=entry.pk,
+            actor=user,
+        )
         return entry
 
     @staticmethod
@@ -152,6 +182,13 @@ class KnowledgeService:
         entry.status = 'draft'
         entry.updated_by = user
         KnowledgeService._save_and_version(entry, user, summary)
+        _notify_knowledge(
+            title='Knowledge Article Unpublished',
+            message=f"'{entry.title}' has been moved back to draft.",
+            type_='NOTICE',
+            entry_id=entry.pk,
+            actor=user,
+        )
         return entry
 
     @staticmethod

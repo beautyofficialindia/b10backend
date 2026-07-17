@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, DatabaseZap, RefreshCw } from "lucide-react";
 import { useInitializeSettings, useRefreshSettingsCache, useClearSettingsCache, useResetSettings } from "../hooks";
@@ -32,45 +31,46 @@ export function SettingsManagement() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">System Management</h2>
-        <p className="text-muted-foreground">
+      <div className="pb-4 border-b">
+        <h2 className="text-2xl font-semibold tracking-tight">Advanced Settings</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Manage cache, initialize configurations, and perform maintenance actions.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DatabaseZap className="w-5 h-5 text-blue-500" />
-              Initialize Defaults
-            </CardTitle>
-            <CardDescription>
-              Seed missing platform settings from the defaults file. Existing settings are preserved.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <div className="border rounded-md divide-y bg-card px-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 group">
+          <div className="space-y-1 pr-4 max-w-[70%]">
+            <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+              <DatabaseZap className="w-4 h-4 text-blue-500" />
+              Initialize Platform Settings
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Seed missing platform settings from the defaults file. Existing settings are preserved and will not be overwritten.
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0 flex shrink-0">
             <Button 
+              variant="outline"
               onClick={() => initMutation.mutate()} 
               disabled={initMutation.isPending}
             >
-              {initMutation.isPending ? "Initializing..." : "Initialize Settings"}
+              {initMutation.isPending ? "Initializing..." : "Initialize"}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <RefreshCw className="w-5 h-5 text-green-500" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 group">
+          <div className="space-y-1 pr-4 max-w-[70%]">
+            <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-green-500" />
               Cache Management
-            </CardTitle>
-            <CardDescription>
-              Refresh or clear the settings cache. Cache is normally invalidated automatically.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2">
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Refresh or clear the settings cache. Cache is normally invalidated automatically, but this can resolve synchronization issues.
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0 flex gap-2 shrink-0">
             <Button 
               variant="secondary"
               onClick={() => refreshMutation.mutate({})} 
@@ -85,57 +85,46 @@ export function SettingsManagement() {
             >
               Clear Cache
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
 
-      <Card className="border-destructive/50 mt-8">
-        <CardHeader>
-          <CardTitle className="text-lg text-destructive flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            Danger Zone
-          </CardTitle>
-          <CardDescription>
-            These actions are destructive and cannot be undone. Exercise extreme caution.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Reset Platform Settings</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Deletes all customized settings and completely restores the platform to initial defaults.
-              </p>
-            </div>
-            
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 group">
+          <div className="space-y-1 pr-4 max-w-[70%]">
+            <h4 className="text-sm font-medium text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Danger Zone
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Reset all platform settings to their system defaults. This action is destructive and cannot be undone.
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0 flex shrink-0">
             <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-              <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 h-9 px-4 py-2">
-                Reset Settings
+              <DialogTrigger render={<Button variant="destructive" />}>
+                Reset Platform Settings
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle className="text-destructive flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5" />
-                    Reset All Settings
-                  </DialogTitle>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
                   <DialogDescription>
-                    This action will delete all user-configured platform settings and restore the initial codebase defaults. 
-                    This could impact active features and integrations.
+                    This action cannot be undone. This will permanently reset all platform 
+                    settings back to their factory defaults. Any customizations will be lost.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                  <p className="text-sm font-medium mb-2">
-                    To confirm, please type <span className="font-mono bg-muted px-1 py-0.5 rounded text-destructive select-all">RESET_PLATFORM_SETTINGS</span> below:
+                <div className="my-4 space-y-2">
+                  <p className="text-sm font-medium">
+                    Type <span className="font-mono bg-muted px-1 py-0.5 rounded">RESET_PLATFORM_SETTINGS</span> to confirm.
                   </p>
                   <Input 
                     value={resetConfirmText}
                     onChange={(e) => setResetConfirmText(e.target.value)}
                     placeholder="RESET_PLATFORM_SETTINGS"
-                    className="font-mono"
                   />
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+                    Cancel
+                  </Button>
                   <Button 
                     variant="destructive" 
                     onClick={handleReset}
@@ -147,8 +136,8 @@ export function SettingsManagement() {
               </DialogContent>
             </Dialog>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

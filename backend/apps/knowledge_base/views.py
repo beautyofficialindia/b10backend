@@ -59,15 +59,22 @@ class PublicKnowledgeDetailView(APIView):
             entry = KnowledgeEntry.objects.get(
                 slug=slug, status='published', is_deleted=False
             )
+            serializer = KnowledgeEntryDetailSerializer(entry)
+            return success_response(data=serializer.data)
         except KnowledgeEntry.DoesNotExist:
-            return error_response(
-                code='NOT_FOUND_RESOURCE',
-                message='Knowledge entry not found.',
-                status=404,
-            )
+            return error_response(code='NOT_FOUND', message="Article not found.", status=404)
 
-        serializer = KnowledgeEntryDetailSerializer(entry)
-        return success_response(data=serializer.data)
+
+class KnowledgeStatusAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        entries = KnowledgeEntry.objects.filter(is_deleted=False)
+        return success_response(data={
+            "draft": entries.filter(status='draft').count(),
+            "published": entries.filter(status='published').count(),
+            "archived": entries.filter(status='archived').count()
+        })
 
 
 # ─── Admin Views ────────────────────────────────────────────────────────────────

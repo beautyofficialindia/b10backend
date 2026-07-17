@@ -1,9 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useSettings, useSettingsGroups } from "../hooks";
-import { SettingsGroupCard } from "./settings-group-card";
-import { SettingsSettingCard } from "./settings-setting-card";
+import { useSettings } from "../hooks";
+import { SettingsSettingRow } from "./settings-setting-row";
 import { SettingsEmptyState } from "./settings-empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/common/error-state";
@@ -24,26 +23,20 @@ export function SettingsContent() {
   const currentGroup = searchParams.get("group");
   const currentSearch = searchParams.get("search");
 
-  // Mode 1: No group, no search -> Show Groups
-  const isMode1 = !currentGroup && !currentSearch && currentGroup !== "SYSTEM_MANAGEMENT";
+  // Default to GENERAL if nothing is selected
+  const activeGroup = currentGroup || (currentSearch ? null : "GENERAL");
+  const isSystemManagement = currentGroup === "SYSTEM_MANAGEMENT";
   
-  // Mode 2 & 3: Group selected OR Search active -> Show Settings
-  const isMode2Or3 = (!!currentGroup || !!currentSearch) && currentGroup !== "SYSTEM_MANAGEMENT";
 
-  const { 
-    data: groupsData, 
-    isLoading: isLoadingGroups, 
-    isError: isErrorGroups 
-  } = useSettingsGroups(true);
 
   const { 
     data: settingsData, 
     isLoading: isLoadingSettings, 
     isError: isErrorSettings 
   } = useSettings({
-    ...(currentGroup && currentGroup !== "SYSTEM_MANAGEMENT" ? { group: currentGroup } : {}),
+    ...(activeGroup && !isSystemManagement ? { group: activeGroup } : {}),
     ...(currentSearch ? { search: currentSearch } : {})
-  }, isMode2Or3);
+  }, !isSystemManagement);
 
   // Mode System Management
   if (currentGroup === "SYSTEM_MANAGEMENT") {
@@ -54,41 +47,7 @@ export function SettingsContent() {
     );
   }
 
-  if (isMode1) {
-    if (isLoadingGroups) {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-xl" />
-          ))}
-        </div>
-      );
-    }
 
-    if (isErrorGroups || !groupsData) {
-      return <ErrorState title="Failed to load settings categories" />;
-    }
-
-    if (groupsData.length === 0) {
-      return <SettingsEmptyState title="No categories available" />;
-    }
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Platform Settings</h2>
-          <p className="text-sm text-muted-foreground">Select a category to begin managing platform configuration.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groupsData.map((group) => (
-            <SettingsGroupCard key={group.name} group={group} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (isMode2Or3) {
     if (isLoadingSettings) {
       return (
         <div className="space-y-4">
@@ -117,7 +76,7 @@ export function SettingsContent() {
     }
 
     const groupDisplayName = currentGroup 
-      ? groupsData?.find(g => g.name === currentGroup)?.display_name || currentGroup
+      ? currentGroup.charAt(0).toUpperCase() + currentGroup.slice(1).toLowerCase()
       : "Search Results";
 
     // If searching, just show the generic list, or if the group doesn't have a custom panel
@@ -131,9 +90,10 @@ export function SettingsContent() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 gap-4">
+          
+          <div className="border rounded-md divide-y bg-card px-4">
             {settingsData.data.map((setting) => (
-              <SettingsSettingCard key={setting.id} setting={setting} />
+              <SettingsSettingRow key={setting.id} setting={setting} />
             ))}
           </div>
         </div>
@@ -165,15 +125,14 @@ export function SettingsContent() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 gap-4">
+            <div className="border rounded-md divide-y bg-card px-4">
               {settingsData.data.map((setting) => (
-                <SettingsSettingCard key={setting.id} setting={setting} />
+                <SettingsSettingRow key={setting.id} setting={setting} />
               ))}
             </div>
           </div>
         );
     }
-  }
 
   return null;
 }

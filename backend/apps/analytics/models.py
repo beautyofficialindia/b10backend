@@ -28,3 +28,10 @@ class AnalyticsEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} - {self.created_at}"
+
+    class Meta:
+        permissions = [
+            ("view_analytics", "Can view general analytics"),
+            ("export_analytics", "Can export analytics data"),
+            ("view_sensitive_metrics", "Can view sensitive metrics (revenue, conversions, emails)"),
+        ]

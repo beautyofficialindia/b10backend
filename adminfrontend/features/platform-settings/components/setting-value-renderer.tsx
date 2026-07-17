@@ -7,18 +7,29 @@ interface SettingValueRendererProps {
   setting: PlatformSetting;
 }
 
+function formatStringValue(val: string): string {
+  if (!val) return val;
+  // If it's a choice like "MEDIUM", "HIGH", "AUTO_ASSIGN" -> "Medium", "High", "Auto Assign"
+  if (/^[A-Z0-9_]+$/.test(val)) {
+    return val
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return val;
+}
+
 export function SettingValueRenderer({ setting }: SettingValueRendererProps) {
   if (setting.is_sensitive) {
     return (
       <div className="flex items-center gap-2">
         <span className="font-mono">********</span>
-        <span className="text-xs text-muted-foreground italic">(This value is managed securely)</span>
       </div>
     );
   }
 
   if (setting.value === null || setting.value === undefined || setting.value === "") {
-    return <span className="text-muted-foreground italic">Empty</span>;
+    return <span className="text-muted-foreground italic text-sm">Not configured</span>;
   }
 
   switch (setting.value_type) {
@@ -26,17 +37,17 @@ export function SettingValueRenderer({ setting }: SettingValueRendererProps) {
       const isTrue = setting.value.toLowerCase() === 'true';
       return (
         <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium">{isTrue ? "ON" : "OFF"}</span>
           <Switch checked={isTrue} disabled />
-          <span className="text-sm text-muted-foreground">{isTrue ? "ON" : "OFF"}</span>
         </div>
       );
       
     case 'INTEGER':
     case 'FLOAT':
       return (
-        <div className="bg-secondary/50 px-3 py-1 rounded-md inline-block">
-          <span className="font-mono text-sm">[ {setting.value} ]</span>
-        </div>
+        <span className="text-sm font-medium">
+          {setting.value}
+        </span>
       );
       
     case 'JSON':
@@ -49,16 +60,37 @@ export function SettingValueRenderer({ setting }: SettingValueRendererProps) {
       }
       
       if (!isValidJson) {
-        return <span className="text-destructive font-mono">{setting.value} (Invalid JSON)</span>;
+        return <span className="text-destructive font-mono text-sm">{setting.value} (Invalid JSON)</span>;
+      }
+      
+      if (typeof parsedJson === "object" && parsedJson !== null) {
+        // Render as a clean list
+        const entries = Object.entries(parsedJson);
+        if (entries.length === 0) return <span className="text-muted-foreground text-sm italic">Empty Configuration</span>;
+        
+        return (
+          <div className="space-y-1">
+            {entries.slice(0, 3).map(([k, v]) => (
+              <div key={k} className="text-sm">
+                <span className="text-muted-foreground capitalize">{k.replace(/_/g, ' ')}</span>
+                <span className="text-muted-foreground mx-1">:</span>
+                <span className="font-medium">{String(v)}</span>
+              </div>
+            ))}
+            {entries.length > 3 && (
+              <div className="text-xs text-muted-foreground italic">
+                + {entries.length - 3} more
+              </div>
+            )}
+          </div>
+        );
       }
       
       return (
-        <pre className="text-xs overflow-x-auto p-2 bg-background rounded border">
-          {JSON.stringify(parsedJson, null, 2)}
-        </pre>
+        <span className="text-sm font-medium">{String(parsedJson)}</span>
       );
       
     default:
-      return <span className="break-all">{setting.value}</span>;
+      return <span className="text-sm font-medium">{formatStringValue(setting.value)}</span>;
   }
 }

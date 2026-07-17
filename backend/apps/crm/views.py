@@ -14,6 +14,11 @@ from .serializers import (
 )
 from .services.crm_service import CRMService
 from apps.accounts.permissions import IsAdminUser, IsAdminOrSales
+from rest_framework.pagination import PageNumberPagination
+
+class CRMPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
 
 class CRMDashboardAPIView(APIView):
     permission_classes = [IsAdminUser]
@@ -52,15 +57,23 @@ class LeadStatusHistoryListAPIView(ListAPIView):
 class LeadFollowUpListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsAdminOrSales]
     serializer_class = LeadFollowUpSerializer
+    pagination_class = CRMPagination
 
     def get_queryset(self):
-        return LeadFollowUp.objects.filter(lead_id=self.kwargs['id'])
+        return LeadFollowUp.objects.filter(lead_id=self.kwargs['id']).order_by('scheduled_at')
 
     def perform_create(self, serializer):
         lead = get_object_or_404(Lead, id=self.kwargs['id'])
         followup = serializer.save(lead=lead)
         CRMService.log_activity(lead, 'followup_created', f"Follow-up scheduled for {followup.scheduled_at}")
-        CRMService.touch_last_contacted(lead)
+
+class PendingFollowUpAPIView(ListAPIView):
+    permission_classes = [IsAdminOrSales]
+    serializer_class = LeadFollowUpSerializer
+    pagination_class = CRMPagination
+
+    def get_queryset(self):
+        return LeadFollowUp.objects.filter(status='pending').order_by('scheduled_at')
 
 class FollowUpDetailAPIView(RetrieveUpdateAPIView):
     permission_classes = [IsAdminOrSales]

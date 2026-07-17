@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'apps.role_management',
     'apps.settings_management',
     'apps.platform_settings',
+    'apps.notifications',
 ]
 
 MIDDLEWARE = [

@@ -22,6 +22,7 @@ admin_urlpatterns = [
     path('entries/<uuid:pk>/unpublish/', views.AdminKnowledgeUnpublishView.as_view(), name='kb-admin-unpublish'),
     path('entries/<uuid:pk>/archive/', views.AdminKnowledgeArchiveView.as_view(), name='kb-admin-archive'),
     path('entries/<uuid:pk>/restore/', views.AdminKnowledgeRestoreView.as_view(), name='kb-admin-restore'),
+    path('status/', views.KnowledgeStatusAPIView.as_view(), name='kb-status'),
     path('entries/<uuid:entry_id>/versions/', views.AdminKnowledgeVersionListView.as_view(), name='kb-admin-versions-list'),
     path('versions/<uuid:pk>/', views.AdminKnowledgeVersionDetailView.as_view(), name='kb-admin-versions-detail'),
     path('versions/<uuid:pk>/restore/', views.AdminKnowledgeVersionRestoreView.as_view(), name='kb-admin-versions-restore'),

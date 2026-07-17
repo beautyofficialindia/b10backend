@@ -1,74 +1,136 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Count
-from django.db.models.functions import TruncDate
-from .models import AnalyticsEvent
-from apps.leads.models import Lead
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from apps.accounts.permissions import IsAdminUser
+from django.utils import timezone
 
-class AnalyticsDashboardAPIView(APIView):
+from .services.overview_service import OverviewAnalyticsService
+from .services.lead_analytics_service import LeadAnalyticsService
+from .services.crm_analytics_service import CrmAnalyticsService
+from .services.chat_analytics_service import ChatAnalyticsService
+from .services.knowledge_analytics_service import KnowledgeAnalyticsService
+from .services.user_analytics_service import UserAnalyticsService
+from .services.export_service import AnalyticsExportService
+from .services.filter_service import AnalyticsFilterService
+from .serializers import (
+    OverviewResponseSerializer, 
+    LeadAnalyticsResponseSerializer, 
+    CrmAnalyticsResponseSerializer,
+    ChatAnalyticsResponseSerializer,
+    KnowledgeAnalyticsResponseSerializer,
+    UserAnalyticsResponseSerializer
+)
+
+class BaseAnalyticsAPIView(APIView):
     permission_classes = [IsAdminUser]
-    def get(self, request, *args, **kwargs):
-        total_chats = AnalyticsEvent.objects.filter(event_type='chat_started').count()
-        total_messages = AnalyticsEvent.objects.filter(event_type='message_sent').count()
-        
-        total_leads = Lead.objects.count()
-        # Anybody past 'gathering' is considered qualified at some point
-        qualified_leads = Lead.objects.filter(status__in=['qualified', 'converted', 'lost', 'escalated']).count()
-        converted_leads = Lead.objects.filter(status='converted').count()
-        lost_leads = Lead.objects.filter(status='lost').count()
-        
-        qualification_rate = (qualified_leads / total_leads * 100) if total_leads > 0 else 0
-        conversion_rate = (converted_leads / qualified_leads * 100) if qualified_leads > 0 else 0
-        
-        data = {
-            "total_chats": total_chats,
-            "total_messages": total_messages,
-            "total_leads": total_leads,
-            "qualified_leads": qualified_leads,
-            "converted_leads": converted_leads,
-            "lost_leads": lost_leads,
-            "qualification_rate": round(qualification_rate, 2),
-            "conversion_rate": round(conversion_rate, 2)
-        }
-        return Response(data, status=status.HTTP_200_OK)
 
-class AnalyticsTimelineAPIView(APIView):
+class AnalyticsOverviewAPIView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        # Group by date and event_type
-        events = (
-            AnalyticsEvent.objects
-            .annotate(date=TruncDate('created_at'))
-            .values('date', 'event_type')
-            .annotate(count=Count('id'))
-            .order_by('date')
-        )
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        timeline = {}
-        for event in events:
-            date_str = str(event['date'])
-            if date_str not in timeline:
-                timeline[date_str] = {}
-            timeline[date_str][event['event_type']] = event['count']
+        data = OverviewAnalyticsService.build_overview_response(context)
+        
+        serializer = OverviewResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+class AnalyticsLeadsAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = LeadAnalyticsService.build_response(context)
+        
+        serializer = LeadAnalyticsResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+
+class AnalyticsCRMAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = CrmAnalyticsService.build_response(context)
+        
+        serializer = CrmAnalyticsResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+class AnalyticsChatAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             
-        return Response(timeline, status=status.HTTP_200_OK)
+        data = ChatAnalyticsService.build_response(context)
+        serializer = ChatAnalyticsResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class AnalyticsFunnelAPIView(APIView):
+class AnalyticsKnowledgeAPIView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        total_chats = AnalyticsEvent.objects.filter(event_type='chat_started').count()
-        total_leads = Lead.objects.count()
-        qualified_leads = Lead.objects.filter(status__in=['qualified', 'converted', 'lost', 'escalated']).count()
-        converted_leads = Lead.objects.filter(status='converted').count()
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        data = KnowledgeAnalyticsService.build_response(context)
+        serializer = KnowledgeAnalyticsResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+class AnalyticsUsersAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        data = UserAnalyticsService.build_response(context)
+        serializer = UserAnalyticsResponseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+class AnalyticsExportAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            context = AnalyticsFilterService.build_filter_context(request)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        module = request.query_params.get('module', 'overview')
+        valid_modules = ['overview', 'leads', 'crm', 'chat', 'knowledge', 'users']
         
-        funnel = [
-            {"stage": "Chats Started", "value": total_chats},
-            {"stage": "Leads Captured", "value": total_leads},
-            {"stage": "Leads Qualified", "value": qualified_leads},
-            {"stage": "Leads Converted", "value": converted_leads}
-        ]
-        return Response(funnel, status=status.HTTP_200_OK)
+        if module not in valid_modules:
+            return Response({"error": f"Invalid module. Must be one of {valid_modules}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        response = AnalyticsExportService.generate_csv(module, context)
+        if not response:
+            return Response({"error": "Failed to generate export"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        return response

@@ -10,27 +10,12 @@ from .serializers import (
     LeadListSerializer, 
     LeadDetailSerializer, 
     LeadUpdateSerializer, 
-    DashboardSummarySerializer,
     LeadNoteSerializer,
     LeadAssignmentSerializer
 )
 from apps.leads.services.lead_transition_service import LeadTransitionService
 from apps.accounts.permissions import IsAdminUser, IsAdminOrSales, IsAdminSalesOrSupport
 
-class DashboardSummaryAPIView(APIView):
-    permission_classes = [IsAdminUser]
-    def get(self, request, *args, **kwargs):
-        leads = Lead.objects.all()
-        summary = {
-            "total_leads": leads.count(),
-            "gathering": leads.filter(status="gathering").count(),
-            "qualified": leads.filter(status="qualified").count(),
-            "converted": leads.filter(status="converted").count(),
-            "lost": leads.filter(status="lost").count(),
-            "escalated": leads.filter(status="escalated").count(),
-        }
-        serializer = DashboardSummarySerializer(summary)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class LeadPagination(PageNumberPagination):
     page_size = 20

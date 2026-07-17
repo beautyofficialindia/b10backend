@@ -2,13 +2,6 @@ from rest_framework import serializers
 from .models import Lead
 from apps.chatbot.models import ConversationSession, Message
 
-class DashboardSummarySerializer(serializers.Serializer):
-    total_leads = serializers.IntegerField()
-    gathering = serializers.IntegerField()
-    qualified = serializers.IntegerField()
-    converted = serializers.IntegerField()
-    lost = serializers.IntegerField()
-    escalated = serializers.IntegerField()
 
 class LeadListSerializer(serializers.ModelSerializer):
     class Meta:

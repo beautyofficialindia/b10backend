@@ -16,16 +16,13 @@ export function SettingsSidebar() {
   const pathname = usePathname();
   const canManageSystem = useHasPermission(["platform_settings.can_initialize_settings"]);
   
-  const currentGroup = searchParams.get("group");
+  // Default to GENERAL if no group is selected
+  const currentGroup = searchParams.get("group") || "GENERAL";
 
   const handleGroupSelect = (groupName: string | null) => {
     if (!groupName) return;
     const params = new URLSearchParams(searchParams);
-    if (groupName === "ALL") {
-      params.delete("group");
-    } else {
-      params.set("group", groupName);
-    }
+    params.set("group", groupName);
     // Maintain search term but reset page
     params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
@@ -52,21 +49,20 @@ export function SettingsSidebar() {
   }
 
   return (
-    <div className="w-full md:w-64 shrink-0 flex flex-col gap-4">
+    <div className="w-full md:w-64 shrink-0 flex flex-col gap-8">
       {/* Mobile Select */}
       <div className="md:hidden">
         <Select 
-          value={currentGroup || "ALL"} 
+          value={currentGroup} 
           onValueChange={handleGroupSelect}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All Categories</SelectItem>
             {groups.map((group) => (
               <SelectItem key={group.name} value={group.name}>
-                {group.display_name} ({group.count})
+                {group.display_name}
               </SelectItem>
             ))}
             {canManageSystem && (
@@ -80,55 +76,44 @@ export function SettingsSidebar() {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex flex-col gap-1">
-        <button
-          onClick={() => handleGroupSelect("ALL")}
-          className={cn(
-            "w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 flex justify-between items-center group",
-            !currentGroup
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          )}
-        >
-          <span>All Categories</span>
-        </button>
-        {groups.map((group) => (
-          <button
-            key={group.name}
-            onClick={() => handleGroupSelect(group.name)}
-            className={cn(
-              "w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 flex flex-col group",
-              currentGroup === group.name
-                ? "bg-primary/10 text-primary border-l-2 border-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground border-l-2 border-transparent"
-            )}
-          >
-            <div className="flex justify-between items-center w-full">
-              <span>{group.display_name}</span>
-              <span className="text-xs opacity-60">({group.count})</span>
-            </div>
-            <span className="text-[10px] opacity-50 font-normal">
-              editable {group.editable_count}/{group.count}
-            </span>
-          </button>
-        ))}
+      <div className="hidden md:flex flex-col gap-6">
+        <div>
+          <h4 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Platform Settings</h4>
+          <div className="flex flex-col gap-1">
+            {groups.map((group) => (
+              <button
+                key={group.name}
+                onClick={() => handleGroupSelect(group.name)}
+                className={cn(
+                  "w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                  currentGroup === group.name
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                {group.display_name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {canManageSystem && (
-          <>
-            <div className="h-px bg-border my-2 w-full mx-4" style={{ width: 'calc(100% - 2rem)' }} />
-            <button
-              onClick={() => handleGroupSelect("SYSTEM_MANAGEMENT")}
-              className={cn(
-                "w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 flex flex-col group mt-2",
-                currentGroup === "SYSTEM_MANAGEMENT"
-                  ? "bg-destructive/10 text-destructive border-l-2 border-destructive"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground border-l-2 border-transparent"
-              )}
-            >
-              <div className="flex justify-between items-center w-full">
-                <span>System Management</span>
-              </div>
-            </button>
-          </>
+          <div>
+            <h4 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Advanced</h4>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => handleGroupSelect("SYSTEM_MANAGEMENT")}
+                className={cn(
+                  "w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                  currentGroup === "SYSTEM_MANAGEMENT"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                System Management
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

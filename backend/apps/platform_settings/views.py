@@ -24,6 +24,22 @@ from .permissions import (
 )
 from common.pagination import StandardPageNumberPagination
 
+
+def _notify_settings(title, message, type_='NOTICE', actor=None):
+    """Fire-and-forget admin notification for platform settings events."""
+    try:
+        from apps.notifications.services import NotificationService
+        NotificationService.create(
+            title=title,
+            message=message,
+            type=type_,
+            category='SETTINGS',
+            action_url='/settings',
+            actor=actor,
+        )
+    except Exception:
+        pass
+
 class AdminSettingsListAPIView(generics.ListAPIView):
     """List all platform settings with search, filtering, and ordering."""
     queryset = PlatformSetting.objects.all()
@@ -127,6 +143,14 @@ class AdminSettingDetailAPIView(generics.RetrieveUpdateAPIView):
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        _notify_settings(
+            title='Setting Updated',
+            message=f"Setting '{instance.display_name or instance.key}' in group '{instance.group}' was updated.",
+            actor=self.request.user,
+        )
+
 class InitializeSettingsAPIView(views.APIView):
     """Initialize default settings."""
     permission_classes = [CanInitializePlatformSettings]
@@ -158,6 +182,12 @@ class ResetSettingsAPIView(views.APIView):
         serializer.is_valid(raise_exception=True)
         
         reset_count = SettingsService.reset_defaults(user=request.user)
+        _notify_settings(
+            title='Platform Settings Reset',
+            message=f"All default settings have been reset to their original values ({reset_count} settings affected).",
+            type_='WARNING',
+            actor=request.user,
+        )
         return Response({
             "message": "Settings reset successfully.",
             "reset_count": reset_count
@@ -221,9 +251,30 @@ class ClearSettingsCacheAPIView(views.APIView):
             msg = f"Cache cleared for group {group}."
         else:
             msg = "Global cache cleared."
+
+        _notify_settings(
+            title='Settings Cache Cleared',
+            message=msg,
+            actor=request.user,
+        )
             
         return Response({
             "message": msg,
             "group": group,
             "key": key
         }, status=status.HTTP_200_OK)
+
+from .platform_health_service import PlatformHealthService
+
+class AdminPlatformHealthAPIView(views.APIView):
+    """Retrieve the current platform health and system alerts."""
+    permission_classes = [CanViewPlatformSettings]
+
+    @extend_schema(
+        summary="Get Platform Health",
+        description="Returns system alerts categorized by severity (critical, warning, info) and a global health status."
+    )
+    def get(self, request):
+        alerts = PlatformHealthService.get_system_alerts()
+        return Response(alerts)
+

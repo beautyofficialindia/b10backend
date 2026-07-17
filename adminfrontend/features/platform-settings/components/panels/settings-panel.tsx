@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { PlatformSetting } from "../../types";
-import { SettingsSettingCard } from "../settings-setting-card";
+import { SettingsSettingRow } from "../settings-setting-row";
 
 interface SettingsSectionProps {
   title: string;
@@ -19,9 +19,9 @@ export function SettingsSection({ title, description, settings }: SettingsSectio
         <h3 className="text-lg font-medium">{title}</h3>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+      <div className="border rounded-md divide-y bg-card px-4">
         {settings.map((setting) => (
-          <SettingsSettingCard key={setting.id} setting={setting} />
+          <SettingsSettingRow key={setting.id} setting={setting} />
         ))}
       </div>
     </div>

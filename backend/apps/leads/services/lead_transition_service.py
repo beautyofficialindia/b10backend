@@ -5,6 +5,22 @@ from apps.analytics.services.analytics_service import AnalyticsService
 from apps.crm.services.crm_service import CRMService
 
 
+def _notify(title, message, type_, category, action_url='', actor=None):
+    """Fire-and-forget wrapper. Silently skips if notifications app isn't ready."""
+    try:
+        from apps.notifications.services import NotificationService as AdminNotificationService
+        AdminNotificationService.create(
+            title=title,
+            message=message,
+            type=type_,
+            category=category,
+            action_url=action_url,
+            actor=actor,
+        )
+    except Exception:
+        pass  # Never block the main flow
+
+
 class LeadTransitionService:
     """
     Single orchestrator for all Lead status-change side effects.
@@ -35,8 +51,22 @@ class LeadTransitionService:
             LeadTransitionService._on_qualified(lead)
         elif new_status == 'converted':
             AnalyticsService.track_lead_converted(lead)
+            _notify(
+                title='Lead Converted',
+                message=f"{lead.full_name or lead.email or 'A lead'} has been marked as converted.",
+                type_='SUCCESS',
+                category='LEADS',
+                action_url=f'/crm/leads/{lead.id}',
+            )
         elif new_status == 'lost':
             AnalyticsService.track_lead_lost(lead)
+            _notify(
+                title='Lead Lost',
+                message=f"{lead.full_name or lead.email or 'A lead'} has been marked as lost.",
+                type_='WARNING',
+                category='LEADS',
+                action_url=f'/crm/leads/{lead.id}',
+            )
 
     @staticmethod
     def _on_qualified(lead):
@@ -55,3 +85,10 @@ class LeadTransitionService:
         # That guard is the safety net; this method should only be called on a true transition.
         notification_service = NotificationService()
         notification_service.send_lead_notification(lead)
+        _notify(
+            title='Lead Qualified',
+            message=f"{lead.full_name or lead.email or 'A lead'} has been qualified by the AI assistant.",
+            type_='SUCCESS',
+            category='LEADS',
+            action_url=f'/crm/leads/{lead.id}',
+        )

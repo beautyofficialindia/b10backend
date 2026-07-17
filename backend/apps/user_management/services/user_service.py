@@ -17,6 +17,22 @@ from apps.user_management.models import UserAuditLog
 User = get_user_model()
 
 
+def _notify_users(title, message, type_, action_url='', actor=None):
+    """Fire-and-forget admin notification for user management events."""
+    try:
+        from apps.notifications.services import NotificationService
+        NotificationService.create(
+            title=title,
+            message=message,
+            type=type_,
+            category='USERS',
+            action_url=action_url,
+            actor=actor,
+        )
+    except Exception:
+        pass
+
+
 def _parse_date_param(value: str | None) -> datetime | None:
     """
     Parse a date/datetime string from a query parameter into a timezone-aware datetime.
@@ -228,6 +244,14 @@ class UserService:
             description=f"Created user '{username}' with email '{email}'",
         )
 
+        _notify_users(
+            title='New User Created',
+            message=f"User '{username}' ({email}) has been created.",
+            type_='INFO',
+            action_url=f'/users/{user.pk}',
+            actor=actor,
+        )
+
         return user
 
     @staticmethod
@@ -341,6 +365,14 @@ class UserService:
             description=f"Activated user '{user.username}'",
         )
 
+        _notify_users(
+            title='User Activated',
+            message=f"User '{user.username}' has been reactivated.",
+            type_='INFO',
+            action_url=f'/users/{user.pk}',
+            actor=actor,
+        )
+
         return user
 
     @staticmethod
@@ -369,6 +401,14 @@ class UserService:
             target_user=user,
             action='user_deactivated',
             description=f"Deactivated user '{user.username}'",
+        )
+
+        _notify_users(
+            title='User Deactivated',
+            message=f"User '{user.username}' has been deactivated.",
+            type_='WARNING',
+            action_url=f'/users/{user.pk}',
+            actor=actor,
         )
 
         return user

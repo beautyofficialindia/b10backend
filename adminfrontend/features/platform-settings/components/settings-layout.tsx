@@ -7,17 +7,20 @@ import { SettingsContent } from "./settings-content";
 export function SettingsLayout() {
   return (
     <div className="flex flex-col h-full gap-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage your platform configuration, integrations, and preferences.
-          </p>
-        </div>
-        <SettingsSearch />
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground text-sm">
+          Manage your platform configuration, integrations, and preferences.
+        </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8 flex-1 pb-10">
+      <div className="pb-4 border-b">
+        <div className="max-w-md">
+          <SettingsSearch />
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-8 flex-1 pb-10 mt-2">
         <SettingsSidebar />
         
         <div className="flex-1 w-full min-w-0">
