@@ -6,3 +6,4 @@ export * from "./analytics-section";
 export * from "./analytics-filters";
 export * from "./analytics-navigation";
 export * from "./analytics-filters";
+export * from "./chart-tooltip";

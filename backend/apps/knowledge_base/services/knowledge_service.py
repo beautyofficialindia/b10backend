@@ -145,15 +145,14 @@ class KnowledgeService:
         KnowledgeService._save_and_version(entry, user, summary)
 
     @staticmethod
-    def restore_entry(entry, user, summary="Restored deleted entry"):
-        """Restore a soft-deleted entry."""
-        entry.is_deleted = False
-        entry.deleted_at = None
+    def restore_entry(entry, user, summary="Restored archived entry"):
+        """Restore an archived entry to draft."""
+        entry.status = 'draft'
         entry.updated_by = user
         KnowledgeService._save_and_version(entry, user, summary)
         _notify_knowledge(
             title='Knowledge Article Restored',
-            message=f"'{entry.title}' has been restored from the deleted articles.",
+            message=f"'{entry.title}' has been restored to drafts.",
             type_='NOTICE',
             entry_id=entry.pk,
             actor=user,

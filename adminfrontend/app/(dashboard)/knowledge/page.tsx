@@ -97,7 +97,7 @@ export default function KnowledgePage() {
 
   return (
     <FeatureGuard feature="ENABLE_KNOWLEDGE_BASE">
-    <PermissionGuard permissions={['knowledge_base.view_kbentry']}>
+    <PermissionGuard permissions={['knowledge_base.view_knowledgeentry']}>
     <PageContainer>
       <PageHeader title="Knowledge Base" description="Manage content that powers the chatbot">
         <Button size="sm" onClick={() => router.push('/knowledge/new')} className="gap-1.5">

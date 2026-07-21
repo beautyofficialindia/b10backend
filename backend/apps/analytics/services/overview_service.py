@@ -211,7 +211,7 @@ class OverviewAnalyticsService:
         return {"enabled": True, "data": insights}
         
     @staticmethod
-    def build_overview_response(context):
+    def build_response(context):
         return {
             "executive_metrics": OverviewAnalyticsService.get_executive_metrics(context),
             "growth_metrics": OverviewAnalyticsService.get_growth_metrics(context),

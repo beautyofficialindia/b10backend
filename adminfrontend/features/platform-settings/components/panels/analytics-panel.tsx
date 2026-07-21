@@ -16,15 +16,12 @@ export function AnalyticsPanel({ settings }: AnalyticsPanelProps) {
     getSetting("TRACK_CRM_ACTIONS")
   ].filter(Boolean) as PlatformSetting[];
   
-  const aggregationSettings = [
-    getSetting("ENABLE_ANALYTICS")
-  ].filter(Boolean) as PlatformSetting[];
+  const aggregationSettings = [] as PlatformSetting[];
 
   const mappedKeys = new Set([
     "TRACK_CONVERSATIONS", 
     "TRACK_LEADS", 
-    "TRACK_CRM_ACTIONS", 
-    "ENABLE_ANALYTICS"
+    "TRACK_CRM_ACTIONS"
   ]);
   const otherSettings = settings.filter((s) => !mappedKeys.has(s.key));
 

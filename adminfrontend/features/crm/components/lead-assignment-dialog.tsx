@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 
 interface LeadAssignmentDialogProps {
   leadId: string;
-  currentAssigneeId?: string | null;
+  currentAssigneeId?: number | null;
   trigger?: React.ReactElement;
   onSuccess?: () => void;
 }
@@ -38,7 +38,7 @@ export function LeadAssignmentDialog({ leadId, currentAssigneeId, trigger, onSuc
 
   const { mutate: assignLead, isPending } = useAssignLead(leadId);
 
-  const handleAssign = (userId: string) => {
+  const handleAssign = (userId: number) => {
     assignLead(userId, {
       onSuccess: () => {
         toast.success('Lead assigned successfully');
@@ -100,7 +100,7 @@ export function LeadAssignmentDialog({ leadId, currentAssigneeId, trigger, onSuc
                 </div>
               ) : (
                 users.map(user => {
-                  const isCurrent = user.id.toString() === currentAssigneeId?.toString();
+                  const isCurrent = user.id === currentAssigneeId;
                   return (
                     <div 
                       key={user.id}
@@ -129,7 +129,7 @@ export function LeadAssignmentDialog({ leadId, currentAssigneeId, trigger, onSuc
                         size="sm"
                         variant={isCurrent ? "secondary" : "default"}
                         disabled={isCurrent || isPending}
-                        onClick={() => handleAssign(user.id.toString())}
+                        onClick={() => handleAssign(user.id)}
                         className="h-8"
                       >
                         {isCurrent ? 'Current' : 'Assign'}

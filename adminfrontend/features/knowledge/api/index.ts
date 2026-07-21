@@ -58,8 +58,13 @@ export const knowledgeApi = {
     return res.data;
   },
 
-  createTag: async (data: { name: string; slug: string }): Promise<{ data: Tag }> => {
+  createTag: async (data: { name: string }): Promise<Tag> => {
     const res = await api.post('/admin/kb/tags/', data);
+    return res.data;
+  },
+
+  createCategory: async (data: { name: string }): Promise<Category> => {
+    const res = await api.post('/admin/kb/categories/', data);
     return res.data;
   },
 

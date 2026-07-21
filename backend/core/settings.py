@@ -158,6 +158,7 @@ REST_FRAMEWORK = {
         'user': '100/min',
         'chat_anon': '20/min',
         'chat_user': '60/min',
+        'contact_form': '5/15m',
     }
 }
 

@@ -255,16 +255,7 @@ DEFAULT_PLATFORM_SETTINGS = [
     },
 
     # ANALYTICS
-    {
-        'group': SettingGroup.ANALYTICS,
-        'key': 'ENABLE_ANALYTICS',
-        'display_name': 'Enable Analytics',
-        'value': 'false',
-        'value_type': ValueType.BOOLEAN,
-        'description': 'Enable the analytics aggregation engine.',
-        'is_public': False,
-        'display_order': 1,
-    },
+
     {
         'group': SettingGroup.ANALYTICS,
         'key': 'TRACK_CONVERSATIONS',

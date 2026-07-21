@@ -44,7 +44,7 @@ export function AnalyticsFilters() {
       else if (pathname.includes("/analytics/knowledge")) moduleName = "knowledge";
       else if (pathname.includes("/analytics/users")) moduleName = "users";
 
-      let url = `/analytics/export/?module=${moduleName}`;
+      let url = `/admin/analytics/export/?module=${moduleName}`;
       if (period === "custom") {
         if (startDate) url += `&start_date=${startDate}`;
         if (endDate) url += `&end_date=${endDate}`;

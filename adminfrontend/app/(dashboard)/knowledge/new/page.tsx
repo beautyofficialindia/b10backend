@@ -9,7 +9,7 @@ import { TextField, FormSection } from '@/components/forms';
 import { EntitySelect, type Option } from '@/components/forms/entity-select';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Loader2, Play } from 'lucide-react';
-import { useCreateEntry, useCategories, useTags, useCreateTag } from '@/features/knowledge';
+import { useCreateEntry, useCategories, useTags, useCreateTag, useCreateCategory } from '@/features/knowledge';
 import { MarkdownEditor } from '@/features/knowledge/components/markdown-editor';
 import { useMemo } from 'react';
 
@@ -26,6 +26,7 @@ export default function KnowledgeNewPage() {
   const router = useRouter();
   const createMutation = useCreateEntry();
   const createTagMutation = useCreateTag();
+  const createCategoryMutation = useCreateCategory();
 
   const { data: categoriesResponse, isLoading: isLoadingCategories } = useCategories();
   const { data: tagsResponse, isLoading: isLoadingTags } = useTags();
@@ -52,12 +53,20 @@ export default function KnowledgeNewPage() {
 
   const handleCreateTag = async (inputValue: string) => {
     try {
-      const slug = inputValue.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const res = await createTagMutation.mutateAsync({ name: inputValue, slug });
+      const res = await createTagMutation.mutateAsync({ name: inputValue });
       const currentTags = getValues('tags') || [];
-      setValue('tags', [...currentTags, res.data.id]);
+      setValue('tags', [...currentTags, res.id]);
     } catch (err) {
       console.error('Failed to create tag', err);
+    }
+  };
+
+  const handleCreateCategory = async (inputValue: string) => {
+    try {
+      const res = await createCategoryMutation.mutateAsync({ name: inputValue });
+      setValue('category', res.id);
+    } catch (err) {
+      console.error('Failed to create category', err);
     }
   };
 
@@ -81,12 +90,14 @@ export default function KnowledgeNewPage() {
                 <EntitySelect
                   label="Category"
                   required
+                  isCreatable
                   error={errors.category?.message}
-                  isLoading={isLoadingCategories}
+                  isLoading={isLoadingCategories || createCategoryMutation.isPending}
                   options={categoryOptions}
                   value={categoryOptions.find(o => o.value === field.value) || null}
                   onChange={(option: Option | readonly Option[] | null) => field.onChange((option as Option)?.value || null)}
-                  placeholder="Select category..."
+                  onCreateOption={handleCreateCategory}
+                  placeholder="Select or create category..."
                 />
               )}
             />

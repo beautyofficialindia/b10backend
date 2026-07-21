@@ -279,12 +279,19 @@ class AdminKnowledgeRestoreView(APIView):
 
     def post(self, request, pk):
         try:
-            entry = KnowledgeEntry.objects.get(pk=pk, is_deleted=True)
+            entry = KnowledgeEntry.objects.get(pk=pk)
         except KnowledgeEntry.DoesNotExist:
             return error_response(
                 code='NOT_FOUND_RESOURCE',
-                message='No soft-deleted entry found with this ID.',
+                message='Knowledge entry not found.',
                 status=404,
+            )
+
+        if entry.status != 'archived':
+            return error_response(
+                code='VALIDATION_ERROR',
+                message='Only archived entries can be restored.',
+                status=400,
             )
 
         entry = KnowledgeService.restore_entry(entry, request.user)

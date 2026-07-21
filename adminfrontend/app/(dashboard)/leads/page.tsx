@@ -10,7 +10,7 @@ import { SkeletonTable } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Inbox, Eye } from 'lucide-react';
 import { useLeads, type Lead, type LeadFilters, type LeadStatus } from '@/features/leads';
-import { getStatusVariant, statusOptions, sortOptions } from '@/features/leads/utils';
+import { getStatusVariant, statusOptions, sortOptions, sourceOptions } from '@/features/leads/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { MIN_SEARCH_LENGTH } from '@/lib/constants/search';
 
@@ -84,6 +84,7 @@ export default function LeadsPage() {
     page_size: PAGE_SIZE,
     ordering: '-created_at',
     status: '',
+    source: '',
   });
 
   const queryFilters = useMemo<LeadFilters>(
@@ -135,6 +136,17 @@ export default function LeadsPage() {
           </select>
 
           <select
+            value={filters.source}
+            onChange={(e) => updateFilter({ source: e.target.value })}
+            className="h-9 rounded-md border bg-background px-3 text-sm"
+            aria-label="Filter by source"
+          >
+            {sourceOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+
+          <select
             value={filters.ordering}
             onChange={(e) => updateFilter({ ordering: e.target.value })}
             className="h-9 rounded-md border bg-background px-3 text-sm"
@@ -163,7 +175,7 @@ export default function LeadsPage() {
         <EmptyState
           icon={Inbox}
           title="No leads found"
-          description={debouncedSearch || filters.status ? 'Try adjusting your filters' : 'Leads will appear here once captured by the chatbot'}
+          description={debouncedSearch || filters.status || filters.source ? 'Try adjusting your filters' : 'Leads will appear here once captured by the chatbot'}
         />
       ) : data ? (
         <>

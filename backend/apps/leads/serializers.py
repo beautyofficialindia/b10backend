@@ -1,6 +1,22 @@
 from rest_framework import serializers
 from .models import Lead
 from apps.chatbot.models import ConversationSession, Message
+from common.validators import validate_file_size, validate_file_extension, validate_file_mime_type
+
+class PublicContactSerializer(serializers.Serializer):
+    full_name = serializers.CharField(max_length=100, required=True)
+    email = serializers.EmailField(required=True)
+    phone_number = serializers.CharField(min_length=10, max_length=20, required=True)
+    message = serializers.CharField(min_length=10, max_length=5000, required=True)
+    attachment = serializers.FileField(
+        required=False,
+        validators=[validate_file_size, validate_file_extension, validate_file_mime_type],
+        allow_empty_file=False
+    )
+
+class PublicContactResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
 
 
 class LeadListSerializer(serializers.ModelSerializer):
@@ -28,7 +44,7 @@ class LeadUpdateSerializer(serializers.ModelSerializer):
 class LeadAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lead
-        fields = ['assigned_admin_id']
+        fields = ['assigned_admin']
 
 from .models import LeadNote
 
@@ -40,7 +56,7 @@ class LeadNoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeadNote
         fields = '__all__'
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'lead', 'author_id']
 
     def get_author(self, obj):
         if not obj.author_id:
@@ -68,9 +84,24 @@ class ConversationSessionSerializer(serializers.ModelSerializer):
         model = ConversationSession
         fields = ['session_id', 'is_active', 'created_at', 'last_message_at', 'messages']
 
+from .models import LeadAttachment
+
+class LeadAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeadAttachment
+        fields = ['id', 'file_name', 'file_url', 'file_size', 'mime_type', 'uploaded_at', 'is_public']
+
 class LeadDetailSerializer(serializers.ModelSerializer):
     conversation = ConversationSessionSerializer(read_only=True)
+    attachments = LeadAttachmentSerializer(many=True, read_only=True)
     
     class Meta:
         model = Lead
-        fields = '__all__'
+        fields = [
+            'id', 'full_name', 'company_name', 'email', 'phone', 
+            'industry', 'project_type', 'budget_range', 'timeline', 
+            'requirements', 'status', 'priority', 'source', 'lead_score', 
+            'assigned_admin', 'notification_sent', 'qualified_at', 
+            'last_contacted_at', 'created_at', 'updated_at', 'conversation',
+            'attachments'
+        ]

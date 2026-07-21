@@ -10,13 +10,13 @@ import { LeadAssignmentDialog } from './lead-assignment-dialog';
 
 interface LeadAssignmentWidgetProps {
   leadId: string;
-  assignedAdminId?: string | null;
+  assignedAdmin?: number | null;
 }
 
-export function LeadAssignmentWidget({ leadId, assignedAdminId }: LeadAssignmentWidgetProps) {
-  const { data: user, isLoading, isError } = useUserDetail(assignedAdminId ? parseInt(assignedAdminId) : 0);
+export function LeadAssignmentWidget({ leadId, assignedAdmin }: LeadAssignmentWidgetProps) {
+  const { data: user, isLoading, isError } = useUserDetail(assignedAdmin || 0);
 
-  if (!assignedAdminId) {
+  if (!assignedAdmin) {
     return (
       <div className="rounded-lg border p-4">
         <h3 className="text-sm font-medium mb-3">Assignment</h3>
@@ -25,7 +25,7 @@ export function LeadAssignmentWidget({ leadId, assignedAdminId }: LeadAssignment
           <p className="text-sm font-medium">Unassigned</p>
           <p className="text-xs">No one is working on this lead</p>
         </div>
-        <LeadAssignmentDialog leadId={leadId} currentAssigneeId={assignedAdminId} />
+        <LeadAssignmentDialog leadId={leadId} currentAssigneeId={assignedAdmin} />
       </div>
     );
   }
@@ -71,7 +71,7 @@ export function LeadAssignmentWidget({ leadId, assignedAdminId }: LeadAssignment
 
       <LeadAssignmentDialog 
         leadId={leadId} 
-        currentAssigneeId={assignedAdminId} 
+        currentAssigneeId={assignedAdmin} 
         trigger={
           <Button variant="outline" size="sm" className="w-full text-xs">
             Change Assignment

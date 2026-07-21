@@ -1,8 +1,12 @@
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, OpenApiExample
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView, ListCreateAPIView, UpdateAPIView
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.shortcuts import get_object_or_404
 from .models import Lead, LeadNote
@@ -11,7 +15,9 @@ from .serializers import (
     LeadDetailSerializer, 
     LeadUpdateSerializer, 
     LeadNoteSerializer,
-    LeadAssignmentSerializer
+    LeadAssignmentSerializer,
+    PublicContactSerializer,
+    PublicContactResponseSerializer
 )
 from apps.leads.services.lead_transition_service import LeadTransitionService
 from apps.accounts.permissions import IsAdminUser, IsAdminOrSales, IsAdminSalesOrSupport
@@ -20,6 +26,67 @@ from apps.accounts.permissions import IsAdminUser, IsAdminOrSales, IsAdminSalesO
 class LeadPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
+
+class PublicContactAPIView(APIView):
+    authentication_classes = []
+    permission_classes = []
+    parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [AnonRateThrottle]
+    throttle_scope = 'contact_form'
+
+    @extend_schema(
+        summary="Submit Website Contact Form",
+        description="""
+Public endpoint used by the B10 website contact form.
+
+Creates a Lead in the CRM with:
+- Source: WEBSITE_CONTACT_FORM
+- Status: gathering
+- Lead Score: 0
+- Conversation: null
+
+No authentication is required.
+        """,
+        request=PublicContactSerializer,
+        responses={201: PublicContactResponseSerializer},
+        examples=[
+            OpenApiExample(
+                "Valid Submission",
+                value={
+                    "full_name": "John Doe",
+                    "email": "john@example.com",
+                    "phone_number": "9876543210",
+                    "message": "I would like to discuss my project requirements.",
+                    "attachment": "(binary)"
+                }
+            )
+        ]
+    )
+    def post(self, request, *args, **kwargs):
+        from .services.contact_form_service import ContactFormService
+
+        
+        serializer = PublicContactSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                ContactFormService.process_submission(serializer.validated_data)
+                return Response(
+                    {
+                        "success": True,
+                        "message": "Thank you for contacting B10. Our team will get back to you shortly."
+                    },
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Failed to upload attachment. Please try again."
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LeadListAPIView(ListAPIView):
     permission_classes = [IsAdminSalesOrSupport]
@@ -34,8 +101,11 @@ class LeadListAPIView(ListAPIView):
     def get_queryset(self):
         queryset = super().get_queryset()
         status_param = self.request.query_params.get('status')
+        source_param = self.request.query_params.get('source')
         if status_param:
             queryset = queryset.filter(status=status_param)
+        if source_param:
+            queryset = queryset.filter(source=source_param)
         return queryset
 
 class LeadDetailAPIView(RetrieveUpdateAPIView):

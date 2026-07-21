@@ -12,7 +12,7 @@ import { EntitySelect, type Option } from '@/components/forms/entity-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-import { useKnowledgeDetail, useUpdateEntry, useCategories, useTags, useCreateTag } from '@/features/knowledge';
+import { useKnowledgeDetail, useUpdateEntry, useCategories, useTags, useCreateTag, useCreateCategory } from '@/features/knowledge';
 import { MarkdownEditor } from '@/features/knowledge/components/markdown-editor';
 
 const schema = z.object({
@@ -32,6 +32,7 @@ export default function KnowledgeEditPage({ params }: { params: Promise<{ id: st
   const { data, isLoading, isError, refetch } = useKnowledgeDetail(id);
   const updateMutation = useUpdateEntry();
   const createTagMutation = useCreateTag();
+  const createCategoryMutation = useCreateCategory();
 
   const { data: categoriesResponse, isLoading: isLoadingCategories } = useCategories();
   const { data: tagsResponse, isLoading: isLoadingTags } = useTags();
@@ -72,12 +73,20 @@ export default function KnowledgeEditPage({ params }: { params: Promise<{ id: st
 
   const handleCreateTag = async (inputValue: string) => {
     try {
-      const slug = inputValue.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const res = await createTagMutation.mutateAsync({ name: inputValue, slug });
+      const res = await createTagMutation.mutateAsync({ name: inputValue });
       const currentTags = getValues('tags') || [];
-      setValue('tags', [...currentTags, res.data.id], { shouldDirty: true });
+      setValue('tags', [...currentTags, res.id], { shouldDirty: true });
     } catch (err) {
       console.error('Failed to create tag', err);
+    }
+  };
+
+  const handleCreateCategory = async (inputValue: string) => {
+    try {
+      const res = await createCategoryMutation.mutateAsync({ name: inputValue });
+      setValue('category', res.id, { shouldDirty: true });
+    } catch (err) {
+      console.error('Failed to create category', err);
     }
   };
 
@@ -103,12 +112,15 @@ export default function KnowledgeEditPage({ params }: { params: Promise<{ id: st
               render={({ field }) => (
                 <EntitySelect
                   label="Category"
+                  required
+                  isCreatable
                   options={categoryOptions}
-                  isLoading={isLoadingCategories}
+                  isLoading={isLoadingCategories || createCategoryMutation.isPending}
                   value={categoryOptions.find(o => o.value === field.value) || null}
                   onChange={(selected: Option | readonly Option[] | null) => field.onChange((selected as Option)?.value || null)}
+                  onCreateOption={handleCreateCategory}
                   error={errors.category?.message}
-                  required
+                  placeholder="Select or create category..."
                 />
               )}
             />

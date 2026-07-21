@@ -96,16 +96,19 @@ class KnowledgeServiceTests(TestCase):
         self.entry3 = KnowledgeEntry.objects.create(
             category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='FAQ 2', content='Answer 2', status='published', is_deleted=True
         )
+        self.entry4 = KnowledgeEntry.objects.create(
+            category=Category.objects.get_or_create(slug='faq', defaults={'name':'faq'})[0], title='FAQ 3', content='Answer 3', status='archived'
+        )
 
     def test_list_entries_no_filter(self):
         entries = KnowledgeService.list_entries()
-        # Excludes soft-deleted by default
-        self.assertEqual(entries.count(), 2)
+        # Excludes soft-deleted by default, but includes archived
+        self.assertEqual(entries.count(), 3)
 
     def test_list_entries_category_filter(self):
         entries = KnowledgeService.list_entries(category='faq')
-        self.assertEqual(entries.count(), 1)
-        self.assertEqual(entries.first().pk, self.entry1.pk)
+        # faq has entry1 and entry4
+        self.assertEqual(entries.count(), 2)
 
     def test_list_entries_search_filter(self):
         entries = KnowledgeService.list_entries(search='web')
@@ -114,7 +117,7 @@ class KnowledgeServiceTests(TestCase):
 
     def test_list_entries_search_whitespace_ignored(self):
         entries = KnowledgeService.list_entries(search='   ')
-        self.assertEqual(entries.count(), 2)
+        self.assertEqual(entries.count(), 3)
 
     def test_list_entries_search_ranking(self):
         KnowledgeEntry.objects.create(
@@ -148,7 +151,7 @@ class KnowledgeServiceTests(TestCase):
 
     def test_list_entries_include_deleted(self):
         entries = KnowledgeService.list_entries(include_deleted=True)
-        self.assertEqual(entries.count(), 3)
+        self.assertEqual(entries.count(), 4)
 
     def test_get_entry(self):
         entry = KnowledgeService.get_entry(self.entry1.pk)
@@ -165,7 +168,7 @@ class KnowledgeServiceTests(TestCase):
 
     def test_create_entry_valid(self):
         entry = KnowledgeService.create_entry(
-            data={'category': Category.objects.get_or_create(slug='faq')[0].id, 'title': 'New FAQ', 'content': 'Answer'},
+            data={'category': Category.objects.get_or_create(slug='faq')[0], 'title': 'New FAQ', 'content': 'Answer'},
             user=self.user,
         )
         self.assertEqual(entry.status, 'draft')
@@ -204,11 +207,10 @@ class KnowledgeServiceTests(TestCase):
         self.assertEqual(self.entry1.updated_by, self.user)
 
     def test_restore_entry(self):
-        KnowledgeService.restore_entry(self.entry3, self.user)
-        self.entry3.refresh_from_db()
-        self.assertFalse(self.entry3.is_deleted)
-        self.assertIsNone(self.entry3.deleted_at)
-        self.assertEqual(self.entry3.updated_by, self.user)
+        KnowledgeService.restore_entry(self.entry4, self.user)
+        self.entry4.refresh_from_db()
+        self.assertEqual(self.entry4.status, 'draft')
+        self.assertEqual(self.entry4.updated_by, self.user)
 
     def test_publish_entry(self):
         entry = KnowledgeService.publish_entry(self.entry2, self.user)
@@ -553,23 +555,25 @@ class AdminEndpointTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['data']['status'], 'archived')
 
-    def test_restore_soft_deleted_200(self):
-        self.entry.is_deleted = True
+    def test_restore_archived_200(self):
+        self.entry.status = 'archived'
         self.entry.save()
         response = self.client.post(
             f'/api/v1/admin/kb/entries/{self.entry.pk}/restore/',
             **self._auth_headers(self.admin_token)
         )
         self.assertEqual(response.status_code, 200)
-        self.entry.refresh_from_db()
-        self.assertFalse(self.entry.is_deleted)
+        self.assertEqual(response.json()['data']['status'], 'draft')
 
-    def test_restore_non_deleted_404(self):
+    def test_restore_non_archived_400(self):
+        self.entry.status = 'draft'
+        self.entry.save()
         response = self.client.post(
             f'/api/v1/admin/kb/entries/{self.entry.pk}/restore/',
             **self._auth_headers(self.admin_token)
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
+
 
     def test_nonexistent_uuid_404(self):
         import uuid

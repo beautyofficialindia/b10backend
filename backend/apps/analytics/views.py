@@ -26,8 +26,14 @@ from .serializers import (
 class BaseAnalyticsAPIView(APIView):
     permission_classes = [IsAdminUser]
 
-class AnalyticsOverviewAPIView(APIView):
-    permission_classes = [IsAdminUser]
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        from apps.platform_settings.services import SettingsService
+        from rest_framework.exceptions import PermissionDenied
+        if not SettingsService.is_feature_enabled("ENABLE_ANALYTICS"):
+            raise PermissionDenied("Analytics module is disabled.")
+
+class AnalyticsOverviewAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
@@ -35,14 +41,13 @@ class AnalyticsOverviewAPIView(APIView):
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        data = OverviewAnalyticsService.build_overview_response(context)
+        data = OverviewAnalyticsService.build_response(context)
         
         serializer = OverviewResponseSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class AnalyticsLeadsAPIView(APIView):
-    permission_classes = [IsAdminUser]
+class AnalyticsLeadsAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
@@ -57,8 +62,7 @@ class AnalyticsLeadsAPIView(APIView):
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
-class AnalyticsCRMAPIView(APIView):
-    permission_classes = [IsAdminUser]
+class AnalyticsCRMAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
@@ -72,8 +76,7 @@ class AnalyticsCRMAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class AnalyticsChatAPIView(APIView):
-    permission_classes = [IsAdminUser]
+class AnalyticsChatAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
@@ -86,8 +89,7 @@ class AnalyticsChatAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class AnalyticsKnowledgeAPIView(APIView):
-    permission_classes = [IsAdminUser]
+class AnalyticsKnowledgeAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
@@ -100,8 +102,7 @@ class AnalyticsKnowledgeAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class AnalyticsUsersAPIView(APIView):
-    permission_classes = [IsAdminUser]
+class AnalyticsUsersAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
@@ -114,8 +115,7 @@ class AnalyticsUsersAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class AnalyticsExportAPIView(APIView):
-    permission_classes = [IsAdminUser]
+class AnalyticsExportAPIView(BaseAnalyticsAPIView):
 
     def get(self, request, *args, **kwargs):
         try:

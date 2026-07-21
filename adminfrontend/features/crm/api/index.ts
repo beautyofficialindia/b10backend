@@ -42,17 +42,17 @@ export const useAssignLead = (leadId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (assigned_admin_id: string | null) => {
-      const response = await api.patch(`/admin/leads/${leadId}/assign/`, { assigned_admin_id });
+    mutationFn: async (assigned_admin: number | null) => {
+      const response = await api.patch(`/admin/leads/${leadId}/assign/`, { assigned_admin });
       return response.data;
     },
-    onMutate: async (newAssigneeId) => {
+    onMutate: async (newAssignee) => {
       await queryClient.cancelQueries({ queryKey: ['leads', leadId] });
       const previousLead = queryClient.getQueryData(['leads', leadId]);
       if (previousLead) {
         queryClient.setQueryData(['leads', leadId], {
           ...(previousLead as object),
-          assigned_admin_id: newAssigneeId,
+          assigned_admin: newAssignee,
         });
       }
       return { previousLead };

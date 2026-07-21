@@ -3,19 +3,37 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, DatabaseZap, RefreshCw } from "lucide-react";
+import { AlertTriangle, DatabaseZap, RefreshCw, Loader2 } from "lucide-react";
 import { useInitializeSettings, useRefreshSettingsCache, useClearSettingsCache, useResetSettings } from "../hooks";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function SettingsManagement() {
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isInitDialogOpen, setIsInitDialogOpen] = useState(false);
 
   const initMutation = useInitializeSettings();
   const refreshMutation = useRefreshSettingsCache();
   const clearMutation = useClearSettingsCache();
   const resetMutation = useResetSettings();
+
+  const handleInitialize = () => {
+    initMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        setIsInitDialogOpen(false);
+        if (data && data.created > 0) {
+          toast.success(`Successfully initialized ${data.created} missing platform settings.`);
+        } else {
+          toast.success("All platform settings are already initialized.");
+        }
+      },
+      onError: () => {
+        setIsInitDialogOpen(false);
+        toast.error("Failed to initialize platform settings. Please try again.");
+      }
+    });
+  };
 
   const handleReset = () => {
     if (resetConfirmText !== "RESET_PLATFORM_SETTINGS") return;
@@ -52,11 +70,45 @@ export function SettingsManagement() {
           <div className="mt-4 sm:mt-0 flex shrink-0">
             <Button 
               variant="outline"
-              onClick={() => initMutation.mutate()} 
               disabled={initMutation.isPending}
+              onClick={() => setIsInitDialogOpen(true)}
             >
-              {initMutation.isPending ? "Initializing..." : "Initialize"}
+              {initMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Initializing...
+                </>
+              ) : (
+                "Initialize"
+              )}
             </Button>
+            <Dialog open={isInitDialogOpen} onOpenChange={setIsInitDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Initialize Platform Settings</DialogTitle>
+                  <DialogDescription>
+                    <div className="space-y-4 pt-4 text-foreground">
+                      <p>This action will:</p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Create any missing platform settings.</li>
+                        <li>Preserve all existing values.</li>
+                        <li>Never overwrite configured settings.</li>
+                      </ul>
+                      <p>This operation is safe and can be run multiple times.</p>
+                      <p className="pt-2 font-medium">Do you want to continue?</p>
+                    </div>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsInitDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleInitialize} disabled={initMutation.isPending}>
+                    Initialize Settings
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -100,9 +152,9 @@ export function SettingsManagement() {
           </div>
           <div className="mt-4 sm:mt-0 flex shrink-0">
             <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-              <DialogTrigger render={<Button variant="destructive" />}>
+              <Button variant="destructive" onClick={() => setIsResetDialogOpen(true)}>
                 Reset Platform Settings
-              </DialogTrigger>
+              </Button>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Are you absolutely sure?</DialogTitle>

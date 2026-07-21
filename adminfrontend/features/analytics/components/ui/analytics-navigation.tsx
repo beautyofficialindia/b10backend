@@ -11,7 +11,7 @@ export function AnalyticsNavigation() {
 
   const links = [
     { name: "Overview", href: "/analytics", exact: true },
-    { name: "Leads", href: "/analytics/leads", feature: "TRACK_LEADS" },
+    { name: "Leads", href: "/analytics/leads" },
     { name: "CRM", href: "/analytics/crm", feature: "ENABLE_CRM" },
     { name: "Chat", href: "/analytics/chat", feature: "ENABLE_AI_CHATBOT" },
     { name: "Knowledge", href: "/analytics/knowledge", feature: "ENABLE_KNOWLEDGE_BASE" },

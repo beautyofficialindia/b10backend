@@ -7,7 +7,7 @@ import { StatusBadge, ErrorState, CopyButton } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Mail, Phone, Building2, Clock, Target, Briefcase, DollarSign, Edit3 } from 'lucide-react';
+import { Mail, Phone, Building2, Clock, Target, Briefcase, DollarSign, Edit3, Download, Paperclip } from 'lucide-react';
 import { useLeadDetail, useUpdateLeadStatus, type LeadStatus } from '@/features/leads';
 import { getStatusVariant } from '@/features/leads/utils';
 import { UnifiedTimeline, useUnifiedTimeline, LeadAssignmentWidget, LeadFollowUpWidget, PendingFollowUpBanner, FollowupsTab, NotesTab, ConversationTab } from '@/features/crm';
@@ -110,7 +110,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         </div>
         <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
           <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Assigned</p>
-          <p className="text-sm font-medium">{lead.assigned_admin_id ? 'Assigned' : 'Unassigned'}</p>
+          <p className="text-sm font-medium">{lead.assigned_admin ? 'Assigned' : 'Unassigned'}</p>
         </div>
         <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col items-center justify-center text-center">
           <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Priority</p>
@@ -178,6 +178,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="followups">Follow Ups</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="attachments">Attachments</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-4 space-y-4">
@@ -233,6 +234,53 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
             <TabsContent value="notes" className="mt-4">
               <NotesTab leadId={lead.id} />
+            </TabsContent>
+
+            <TabsContent value="attachments" className="mt-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Attachments</h3>
+                </div>
+                {lead.attachments && lead.attachments.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {lead.attachments.map((attachment) => (
+                      <div key={attachment.id} className="flex items-center p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" title={attachment.file_name}>
+                            {attachment.file_name}
+                          </p>
+                          <div className="flex items-center text-xs text-muted-foreground mt-1 gap-2">
+                            <span>{(attachment.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                            <span>&bull;</span>
+                            <span className="truncate">{attachment.mime_type}</span>
+                            <span>&bull;</span>
+                            <span>{new Date(attachment.uploaded_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <a 
+                          href={attachment.file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-4 flex-shrink-0"
+                        >
+                          <Button variant="outline" size="sm">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg bg-muted/20">
+                    <Paperclip className="h-8 w-8 text-muted-foreground mb-4" />
+                    <h3 className="font-semibold text-lg">No attachments</h3>
+                    <p className="text-muted-foreground text-sm max-w-sm mt-1">
+                      There are no files attached to this lead yet. Attachments uploaded via the public contact form will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
@@ -316,7 +364,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             <div>
               <h3 className="text-sm font-medium mb-2 text-muted-foreground uppercase text-[11px] tracking-wider">CRM</h3>
               <div className="space-y-4">
-                <LeadAssignmentWidget leadId={lead.id} assignedAdminId={lead.assigned_admin_id} />
+                <LeadAssignmentWidget leadId={lead.id} assignedAdmin={lead.assigned_admin} />
                 <LeadFollowUpWidget leadId={lead.id} />
                 <div className="space-y-2">
                   <Button variant="outline" size="sm" className="w-full justify-start gap-2">

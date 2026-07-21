@@ -7,14 +7,14 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'slug', 'color', 'icon', 'sort_order', 'is_active']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'slug']
 
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ['id', 'name', 'slug', 'is_active']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'slug']
 
 
 class KnowledgeEntryListSerializer(serializers.ModelSerializer):

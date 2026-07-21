@@ -17,11 +17,7 @@ from .serializers import (
     CacheRequestSerializer,
     CacheResponseSerializer
 )
-from .permissions import (
-    CanViewPlatformSettings,
-    CanChangePlatformSettings,
-    CanInitializePlatformSettings
-)
+from apps.accounts.permissions import IsAdminUser
 from common.pagination import StandardPageNumberPagination
 
 
@@ -44,7 +40,7 @@ class AdminSettingsListAPIView(generics.ListAPIView):
     """List all platform settings with search, filtering, and ordering."""
     queryset = PlatformSetting.objects.all()
     serializer_class = PlatformSettingSerializer
-    permission_classes = [CanViewPlatformSettings]
+    permission_classes = [IsAdminUser]
     pagination_class = StandardPageNumberPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
@@ -63,7 +59,7 @@ class AdminSettingsListAPIView(generics.ListAPIView):
 
 class AdminSettingsGroupsAPIView(views.APIView):
     """List all setting groups with their counts."""
-    permission_classes = [CanViewPlatformSettings]
+    permission_classes = [IsAdminUser]
 
     @extend_schema(
         summary="List Settings Groups",
@@ -93,7 +89,7 @@ class AdminSettingsGroupsAPIView(views.APIView):
 class AdminSettingsByGroupAPIView(generics.ListAPIView):
     """List settings filtered by a specific group."""
     serializer_class = PlatformSettingSerializer
-    permission_classes = [CanViewPlatformSettings]
+    permission_classes = [IsAdminUser]
     pagination_class = StandardPageNumberPagination
 
     def get_queryset(self):
@@ -118,9 +114,7 @@ class AdminSettingDetailAPIView(generics.RetrieveUpdateAPIView):
         return PlatformSettingSerializer
 
     def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return [CanChangePlatformSettings()]
-        return [CanViewPlatformSettings()]
+        return [IsAdminUser()]
 
     @extend_schema(
         summary="Retrieve a Setting",
@@ -153,7 +147,7 @@ class AdminSettingDetailAPIView(generics.RetrieveUpdateAPIView):
 
 class InitializeSettingsAPIView(views.APIView):
     """Initialize default settings."""
-    permission_classes = [CanInitializePlatformSettings]
+    permission_classes = [IsAdminUser]
 
     @extend_schema(
         summary="Initialize Default Settings",
@@ -169,7 +163,7 @@ class InitializeSettingsAPIView(views.APIView):
 
 class ResetSettingsAPIView(views.APIView):
     """Reset all default settings to their original values."""
-    permission_classes = [CanInitializePlatformSettings]
+    permission_classes = [IsAdminUser]
 
     @extend_schema(
         summary="Reset Settings",
@@ -195,7 +189,7 @@ class ResetSettingsAPIView(views.APIView):
 
 class RefreshSettingsCacheAPIView(views.APIView):
     """Refresh the cache for settings."""
-    permission_classes = [CanInitializePlatformSettings]
+    permission_classes = [IsAdminUser]
 
     @extend_schema(
         summary="Refresh Cache",
@@ -228,7 +222,7 @@ class RefreshSettingsCacheAPIView(views.APIView):
 
 class ClearSettingsCacheAPIView(views.APIView):
     """Clear the cache for settings."""
-    permission_classes = [CanInitializePlatformSettings]
+    permission_classes = [IsAdminUser]
 
     @extend_schema(
         summary="Clear Cache",
@@ -268,7 +262,7 @@ from .platform_health_service import PlatformHealthService
 
 class AdminPlatformHealthAPIView(views.APIView):
     """Retrieve the current platform health and system alerts."""
-    permission_classes = [CanViewPlatformSettings]
+    permission_classes = [IsAdminUser]
 
     @extend_schema(
         summary="Get Platform Health",

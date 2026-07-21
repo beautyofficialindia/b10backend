@@ -26,13 +26,24 @@ export interface LeadDetail {
   priority: LeadPriority;
   source: string;
   lead_score: number;
-  assigned_admin_id: string | null;
+  assigned_admin: number | null;
   notification_sent: boolean;
   qualified_at: string | null;
   last_contacted_at: string | null;
   created_at: string;
   updated_at: string;
   conversation: ConversationSession | null;
+  attachments: LeadAttachment[];
+}
+
+export interface LeadAttachment {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_at: string;
+  is_public: boolean;
 }
 
 export interface ConversationSession {
@@ -63,6 +74,7 @@ export interface LeadListResponse {
 export interface LeadFilters {
   search?: string;
   status?: LeadStatus | '';
+  source?: string | '';
   ordering?: string;
   page?: number;
   page_size?: number;

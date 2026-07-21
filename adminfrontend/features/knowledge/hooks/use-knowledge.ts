@@ -114,8 +114,16 @@ export function useDeleteEntry() {
 export function useCreateTag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; slug: string }) => knowledgeApi.createTag(data),
+    mutationFn: (data: { name: string }) => knowledgeApi.createTag(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tags'] }),
+  });
+}
+
+export function useCreateCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string }) => knowledgeApi.createCategory(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   });
 }
 

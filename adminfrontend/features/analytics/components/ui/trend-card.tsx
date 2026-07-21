@@ -4,6 +4,7 @@ import React from "react";
 import { Trend } from "../../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ChartTooltip } from "./chart-tooltip";
 
 interface TrendCardProps {
   trend: Trend;
@@ -30,14 +31,14 @@ export function TrendCard({ trend, type = "line" }: TrendCardProps) {
               <LineChart data={data}>
                 <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                <Tooltip />
+                <Tooltip content={<ChartTooltip title={trend.title} />} cursor={{ fill: 'transparent' }} />
                 <Line type="monotone" dataKey="value" stroke="currentColor" strokeWidth={2} activeDot={{ r: 4 }} className="stroke-primary" />
               </LineChart>
             ) : (
               <BarChart data={data}>
                 <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                <Tooltip />
+                <Tooltip content={<ChartTooltip title={trend.title} />} cursor={{ fill: 'var(--muted)', opacity: 0.2 }} />
                 <Bar dataKey="value" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
               </BarChart>
             )}

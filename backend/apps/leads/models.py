@@ -3,7 +3,13 @@ import uuid
 
 class Lead(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    conversation = models.OneToOneField('chatbot.ConversationSession', on_delete=models.CASCADE, related_name='lead')
+    conversation = models.OneToOneField(
+        'chatbot.ConversationSession', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='lead'
+    )
     
     full_name = models.CharField(max_length=255, null=True, blank=True)
     company_name = models.CharField(max_length=255, null=True, blank=True)
@@ -34,9 +40,33 @@ class Lead(models.Model):
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
     
     notification_sent = models.BooleanField(default=False)
-    source = models.CharField(max_length=50, default='chatbot')
+    class LeadSourceChoices(models.TextChoices):
+        CHATBOT = "chatbot", "Chatbot"
+        WEBSITE_CONTACT_FORM = "website_contact_form", "Website Contact Form"
+
+        # Future ready
+        MANUAL = "manual", "Manual"
+        API = "api", "API"
+        WEBSITE_SERVICE_REQUEST = "website_service_request", "Website Service Request"
+        WEBSITE_BOOK_MEETING = "website_book_meeting", "Website Book Meeting"
+        WEBSITE_PARTNERSHIP = "website_partnership", "Website Partnership"
+        WEBSITE_CAREERS = "website_careers", "Website Careers"
+
+    source = models.CharField(
+        max_length=50, 
+        choices=LeadSourceChoices.choices, 
+        default=LeadSourceChoices.CHATBOT
+    )
     lead_score = models.PositiveIntegerField(default=0)
-    assigned_admin_id = models.UUIDField(null=True, blank=True)
+
+    from django.conf import settings
+    assigned_admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_leads"
+    )
     external_crm_id = models.CharField(max_length=255, null=True, blank=True)
     external_crm_provider = models.CharField(max_length=100, null=True, blank=True)
     crm_synced_at = models.DateTimeField(null=True, blank=True)
@@ -82,3 +112,26 @@ class LeadEvent(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class LeadAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='attachments')
+    file_name = models.CharField(max_length=255)
+    file_url = models.URLField(max_length=1000)
+    public_id = models.CharField(max_length=500)
+    file_size = models.PositiveIntegerField()
+    mime_type = models.CharField(max_length=100)
+    
+    from django.conf import settings
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_attachments"
+    )
+    is_public = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment {self.file_name} for Lead {self.lead_id}"
