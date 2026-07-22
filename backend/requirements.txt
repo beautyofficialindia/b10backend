@@ -12,3 +12,4 @@ dj-database-url==3.1.2
 django-jazzmin==3.0.4
 cloudinary==1.37.0
 filetype==1.2.0
+gunicorn==23.0.0
