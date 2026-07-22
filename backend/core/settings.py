@@ -23,12 +23,12 @@ env = environ.Env(
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-s(q72@*xggy18q^#3u$m@qa3b)0t!g=!w3wmtyr0ou(p^(kyi%')
-DEBUG = env('DEBUG', default=True)
+DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
-CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)
-
-
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 # Application definition
 
 INSTALLED_APPS = [
@@ -226,3 +226,10 @@ JAZZMIN_SETTINGS = {
         "user_management",
     ],
 }
+
+print("========== CORS CONFIG ==========")
+print("CORS_ALLOW_ALL_ORIGINS =", CORS_ALLOW_ALL_ORIGINS)
+print("CORS_ALLOWED_ORIGINS =", CORS_ALLOWED_ORIGINS)
+print("CSRF_TRUSTED_ORIGINS =", CSRF_TRUSTED_ORIGINS)
+print("DEBUG =", DEBUG)
+print("=================================")
