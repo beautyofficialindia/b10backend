@@ -11,7 +11,7 @@ class CrmAnalyticsService:
     def _is_tracking_enabled():
         return (SettingsService.is_feature_enabled("ENABLE_ANALYTICS") and 
                 SettingsService.is_feature_enabled("ENABLE_CRM") and
-                SettingsService.is_feature_enabled("TRACK_CRM_ACTIONS"))
+                SettingsService.get_boolean("ANALYTICS", "TRACK_CRM_ACTIONS"))
                 
     @staticmethod
     def _get_disabled_response():
@@ -63,14 +63,12 @@ class CrmAnalyticsService:
 
     @staticmethod
     def get_crm_funnel(context):
-        # The CRM Funnel follows the lead through assigned -> contacted -> followed up -> qualified -> converted
+        # The CRM Funnel follows the lead through created -> assigned -> followed up -> qualified -> converted
         # Using Leads to derive these states in the current period.
         q = CrmAnalyticsService._get_filtered_queryset(Lead, 'created_at', context)
         
-        assigned = q.filter(assigned_to__isnull=False).count()
-        # Contacted can be derived from having at least one email sent or call logged (we can use status_history for 'contacted' or activity for 'email_sent')
-        # We can approximate 'contacted' if they have a status of contacted or further along
-        contacted = q.filter(status__in=['contacted', 'qualified', 'converted', 'proposal', 'negotiation', 'escalated']).count()
+        total = q.count()
+        assigned = q.filter(assigned_admin__isnull=False).count()
         followed_up = q.filter(followups__isnull=False).distinct().count()
         qualified = q.filter(status__in=['qualified', 'converted']).count()
         converted = q.filter(status='converted').count()
@@ -78,8 +76,8 @@ class CrmAnalyticsService:
         return {
             "enabled": True,
             "data": build_trend("CRM Funnel", 
-                                ["Assigned", "Contacted", "Followed Up", "Qualified", "Converted"], 
-                                [assigned, contacted, followed_up, qualified, converted])
+                                ["Created", "Assigned", "Followed Up", "Qualified", "Converted"], 
+                                [total, assigned, followed_up, qualified, converted])
         }
 
     @staticmethod
@@ -130,18 +128,18 @@ class CrmAnalyticsService:
         
         # User Performance is tracked based on CRM interactions
         q_activities = CrmAnalyticsService._get_filtered_queryset(LeadActivity, 'created_at', context)
-        # Assuming lead has assigned_to (we might have to check LeadActivity's actor if we add one, but currently LeadActivity doesn't have an actor field)
+        # Assuming lead has assigned_admin (we might have to check LeadActivity's actor if we add one, but currently LeadActivity doesn't have an actor field)
         # But wait, LeadActivity has no user field in the model? 
         # Ah, looking at the model LeadActivity, it only has lead, activity_type, notes, created_at. No user/actor field!
-        # Leads have assigned_to.
+        # Leads have assigned_admin.
         
         q_leads = CrmAnalyticsService._get_filtered_queryset(Lead, 'created_at', context)
         
-        most_assignments = q_leads.filter(assigned_to__isnull=False).values('assigned_to__first_name', 'assigned_to__last_name', 'assigned_to__username').annotate(count=Count('id')).order_by('-count').first()
+        most_assignments = q_leads.filter(assigned_admin__isnull=False).values('assigned_admin__first_name', 'assigned_admin__last_name', 'assigned_admin__username').annotate(count=Count('id')).order_by('-count').first()
         
         if most_assignments:
-            name = f"{most_assignments.get('assigned_to__first_name', '')} {most_assignments.get('assigned_to__last_name', '')}".strip()
-            if not name: name = most_assignments.get('assigned_to__username')
+            name = f"{most_assignments.get('assigned_admin__first_name', '')} {most_assignments.get('assigned_admin__last_name', '')}".strip()
+            if not name: name = most_assignments.get('assigned_admin__username')
             insights.append({
                 "title": "Most Assignments",
                 "value": f"{name} ({most_assignments['count']} leads)",

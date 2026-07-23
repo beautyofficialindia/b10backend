@@ -50,7 +50,7 @@ DEFAULT_PLATFORM_SETTINGS = [
         'group': SettingGroup.FEATURES,
         'key': 'ENABLE_ANALYTICS',
         'display_name': 'Enable Analytics',
-        'value': 'false',
+        'value': 'true',
         'value_type': ValueType.BOOLEAN,
         'description': 'Toggle the Analytics module globally.',
         'is_public': True,

@@ -87,18 +87,19 @@ export function SettingsManagement() {
                 <DialogHeader>
                   <DialogTitle>Initialize Platform Settings</DialogTitle>
                   <DialogDescription>
-                    <div className="space-y-4 pt-4 text-foreground">
-                      <p>This action will:</p>
-                      <ul className="list-disc pl-6 space-y-1">
-                        <li>Create any missing platform settings.</li>
-                        <li>Preserve all existing values.</li>
-                        <li>Never overwrite configured settings.</li>
-                      </ul>
-                      <p>This operation is safe and can be run multiple times.</p>
-                      <p className="pt-2 font-medium">Do you want to continue?</p>
-                    </div>
+                    Seed missing platform settings from the defaults file.
                   </DialogDescription>
                 </DialogHeader>
+                <div className="space-y-4 pt-4 text-foreground text-sm">
+                  <p>This action will:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Create any missing platform settings.</li>
+                    <li>Preserve all existing values.</li>
+                    <li>Never overwrite configured settings.</li>
+                  </ul>
+                  <p>This operation is safe and can be run multiple times.</p>
+                  <p className="pt-2 font-medium">Do you want to continue?</p>
+                </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsInitDialogOpen(false)}>
                     Cancel

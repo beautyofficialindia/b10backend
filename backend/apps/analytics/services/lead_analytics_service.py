@@ -9,7 +9,7 @@ class LeadAnalyticsService:
     @staticmethod
     def _is_tracking_enabled():
         return (SettingsService.is_feature_enabled("ENABLE_ANALYTICS") and 
-                SettingsService.is_feature_enabled("TRACK_LEADS"))
+                SettingsService.get_boolean("ANALYTICS", "TRACK_LEADS"))
                 
     @staticmethod
     def _get_disabled_response():

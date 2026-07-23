@@ -113,7 +113,7 @@ class OverviewAnalyticsService:
         
         # Analytics Tracking
         analytics_enabled = SettingsService.is_feature_enabled("ENABLE_ANALYTICS")
-        analytics_tracking = SettingsService.is_feature_enabled("TRACK_CONVERSATIONS") # rough proxy
+        analytics_tracking = SettingsService.get_boolean("ANALYTICS", "TRACK_CONVERSATIONS") # rough proxy
         
         analytics_health_status = HealthStatus.HEALTHY
         if not analytics_enabled:
